@@ -2,26 +2,92 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-soil:      #3B2F2F;
+    --color-moss:      #4A6741;
+    --color-sage:      #8FAF85;
+    --color-straw:     #F2E8C9;
+    --color-bark:      #7A5C44;
+    --color-sky:       #B0CBE4;
+    --color-harvest:   #D4822A;
+    --color-parchment: #FAF4E6;
+    --color-ink:       #2C2118;
+  }
+
+  html {
+    background-color: #F2E8C9;
+  }
+
+  body {
+    background-color: #F2E8C9;
+    color: #3B2F2F;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-playfair), Georgia, serif;
+    color: #3B2F2F;
+  }
+
+  * {
+    -webkit-tap-highlight-color: rgba(74, 103, 65, 0.12);
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .card {
+    @apply bg-parchment rounded-card shadow-card;
+  }
+
+  .btn-primary {
+    @apply bg-moss hover:bg-moss-light active:bg-moss-dark text-parchment font-sans font-medium
+           px-5 py-3 rounded-full transition-colors min-h-[48px] flex items-center justify-center;
+  }
+
+  .btn-ghost {
+    @apply border border-sage text-soil hover:bg-straw-dark font-sans font-medium
+           px-5 py-3 rounded-full transition-colors min-h-[48px] flex items-center justify-center;
+  }
+
+  .input {
+    @apply w-full bg-parchment border border-sage/60 rounded-xl px-4 py-3 text-sm text-soil
+           placeholder:text-bark/50 focus:outline-none focus:ring-2 focus:ring-moss/40
+           focus:border-moss transition-colors min-h-[48px];
+  }
+
+  .label {
+    @apply block text-xs font-sans font-medium uppercase tracking-wide text-bark mb-1.5;
+  }
+
+  .data-text {
+    @apply font-mono text-sm text-bark;
+  }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Streaming cursor blink */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Save confirmation float */
+@keyframes float-up {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-40px) scale(1.2); }
+}
+.float-up {
+  animation: float-up 1.4s ease-out forwards;
+}
+
+/* Harvest risk badge — pulses once on mount */
+@keyframes pulse-once {
+  0%   { box-shadow: 0 0 0 0 rgba(212,130,42,0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(212,130,42,0); }
+  100% { box-shadow: 0 0 0 0 rgba(212,130,42,0); }
+}
+.pulse-once {
+  animation: pulse-once 1.4s ease-out 0.4s 1;
 }
