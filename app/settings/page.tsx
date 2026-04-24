@@ -48,11 +48,10 @@ export default function SettingsPage() {
         if (data.length > 0) selectGarden(data[0])
       })
 
-    // Detect Google OAuth user so we can show the Connect Sheet button
-    const supabase = createSupabaseBrowserClient()
-    supabase.auth.getUser().then(({ data }) => {
-      setIsGoogleUser(data.user?.app_metadata?.provider === 'google')
-    })
+    // Show Connect button if user has a Google token stored (most reliable check)
+    fetch('/api/me/has-google-token')
+      .then(r => r.json())
+      .then(data => setIsGoogleUser(data.hasToken === true))
   }, [])
 
   function selectGarden(g: Garden) {
