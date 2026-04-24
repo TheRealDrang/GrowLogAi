@@ -4,7 +4,8 @@ import Link from 'next/link'
 import CropChatClient from './CropChatClient'
 import EditCropModal from '@/components/EditCropModal'
 
-export default async function CropPage({ params }: { params: { id: string } }) {
+export default async function CropPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -12,7 +13,7 @@ export default async function CropPage({ params }: { params: { id: string } }) {
   const { data: crop } = await supabase
     .from('crops')
     .select('*, gardens(id, name, location, usda_zone)')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('user_id', user.id)
     .single()
 
@@ -21,14 +22,14 @@ export default async function CropPage({ params }: { params: { id: string } }) {
   const { data: history } = await supabase
     .from('conversations')
     .select('role, content, created_at')
-    .eq('crop_id', params.id)
+    .eq('crop_id', id)
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
   const { data: sessionLogs } = await supabase
     .from('session_logs')
     .select('id, log_date, observation, ai_advice, sheet_posted')
-    .eq('crop_id', params.id)
+    .eq('crop_id', id)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(10)
@@ -73,7 +74,7 @@ export default async function CropPage({ params }: { params: { id: string } }) {
 
       {/* Chat body — scrolls independently */}
       <CropChatClient
-        cropId={params.id}
+        cropId={id}
         initialHistory={(history ?? []).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))}
         sessionLogs={sessionLogs ?? []}
         cropName={crop.name}

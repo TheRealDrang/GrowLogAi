@@ -6,7 +6,8 @@ import NewCropModal from '@/components/NewCropModal'
 import BottomNav from '@/components/BottomNav'
 import DirtFooter from '@/components/DirtFooter'
 
-export default async function GardenPage({ params }: { params: { id: string } }) {
+export default async function GardenPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -14,7 +15,7 @@ export default async function GardenPage({ params }: { params: { id: string } })
   const { data: garden } = await supabase
     .from('gardens')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('user_id', user.id)
     .single()
 
@@ -23,7 +24,7 @@ export default async function GardenPage({ params }: { params: { id: string } })
   const { data: crops } = await supabase
     .from('crops')
     .select('*')
-    .eq('garden_id', params.id)
+    .eq('garden_id', id)
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
