@@ -15,6 +15,16 @@ interface AttachedImage {
   preview: string    // data URL for display
 }
 
+interface SpeechRecognitionInstance {
+  continuous: boolean
+  interimResults: boolean
+  onresult: ((event: Event) => void) | null
+  onerror: ((event: Event) => void) | null
+  onend: (() => void) | null
+  start: () => void
+  stop: () => void
+}
+
 interface SessionLog {
   id: string
   log_date: string
@@ -75,7 +85,7 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
   const startInputRef = useRef('')
 
   const hasLogs = sessionLogs.length > 0
@@ -97,19 +107,21 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
     }
 
     // Claude chose this approach because: Web Speech API is free, built-in, and requires no API keys
-    const SR = (window as { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition || (window as { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
+    const w = window as Record<string, unknown>
+    const SR = (w.SpeechRecognition || w.webkitSpeechRecognition) as (new () => SpeechRecognitionInstance) | undefined
     if (!SR) return
 
-    const recognition: SpeechRecognition = new SR()
+    const recognition = new SR()
     recognition.continuous = true
     recognition.interimResults = true
 
     startInputRef.current = input // preserve any text already typed
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: Event) => {
+      const e = event as Event & { results: { length: number; [i: number]: { [j: number]: { transcript: string } } } }
       let transcript = ''
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript
+      for (let i = 0; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript
       }
       const prefix = startInputRef.current
       setInput((prefix ? prefix + ' ' : '') + transcript)
