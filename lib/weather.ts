@@ -2,25 +2,9 @@ export interface WeatherData {
   temperature: number      // Celsius
   humidity: number         // percent
   windspeed: number        // km/h
-  weathercode: number      // WMO code
+  weathercode: number      // WeatherAPI condition code
   description: string
   mildewRisk: 'low' | 'medium' | 'high'
-}
-
-// WMO weather interpretation codes → human description
-function describeWeatherCode(code: number): string {
-  if (code === 0) return 'Clear sky'
-  if (code === 1) return 'Mainly clear'
-  if (code === 2) return 'Partly cloudy'
-  if (code === 3) return 'Overcast'
-  if (code <= 49) return 'Foggy'
-  if (code <= 59) return 'Drizzle'
-  if (code <= 69) return 'Rain'
-  if (code <= 79) return 'Snow'
-  if (code <= 82) return 'Rain showers'
-  if (code <= 84) return 'Snow showers'
-  if (code <= 99) return 'Thunderstorm'
-  return 'Unknown'
 }
 
 // Estimate mildew/fungal disease risk from humidity + temperature
@@ -33,32 +17,32 @@ function calcMildewRisk(humidity: number, tempC: number): WeatherData['mildewRis
   return 'low'
 }
 
-// Fetch current weather from Open-Meteo (free, no API key required)
+// Fetch current weather from WeatherAPI.com (uses real station observations)
 export async function fetchWeather(lat: number, lon: number): Promise<WeatherData | null> {
   try {
-    const url = new URL('https://api.open-meteo.com/v1/forecast')
-    url.searchParams.set('latitude', String(lat))
-    url.searchParams.set('longitude', String(lon))
-    url.searchParams.set('current', 'temperature_2m,relative_humidity_2m,windspeed_10m,weathercode')
-    url.searchParams.set('forecast_days', '1')
+    const key = process.env.WEATHERAPI_KEY
+    if (!key) return null
 
-    const res = await fetch(url.toString(), { next: { revalidate: 1800 } }) // cache 30 min
+    const url = `https://api.weatherapi.com/v1/current.json?key=${key}&q=${lat},${lon}&aqi=no`
+
+    const res = await fetch(url, { next: { revalidate: 1800 } }) // cache 30 min
     if (!res.ok) return null
 
     const json = await res.json()
     const c = json.current
 
-    const temperature = c.temperature_2m
-    const humidity = c.relative_humidity_2m
-    const windspeed = c.windspeed_10m
-    const weathercode = c.weathercode
+    const temperature: number = c.temp_c
+    const humidity: number = c.humidity
+    const windspeed: number = c.wind_kph
+    const weathercode: number = c.condition.code
+    const description: string = c.condition.text
 
     return {
       temperature,
       humidity,
       windspeed,
       weathercode,
-      description: describeWeatherCode(weathercode),
+      description,
       mildewRisk: calcMildewRisk(humidity, temperature),
     }
   } catch {
