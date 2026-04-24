@@ -3,7 +3,6 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import CropChatClient from './CropChatClient'
 import EditCropModal from '@/components/EditCropModal'
-import BottomNav from '@/components/BottomNav'
 
 export default async function CropPage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient()
