@@ -36,6 +36,9 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isGoogleUser, setIsGoogleUser] = useState(false)
+  const [connecting, setConnecting] = useState(false)
+  const [connectError, setConnectError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/gardens')
@@ -44,6 +47,12 @@ export default function SettingsPage() {
         setGardens(data)
         if (data.length > 0) selectGarden(data[0])
       })
+
+    // Detect Google OAuth user so we can show the Connect Sheet button
+    const supabase = createSupabaseBrowserClient()
+    supabase.auth.getUser().then(({ data }) => {
+      setIsGoogleUser(data.user?.app_metadata?.provider === 'google')
+    })
   }, [])
 
   function selectGarden(g: Garden) {
@@ -113,6 +122,26 @@ export default function SettingsPage() {
     const supabase = createSupabaseBrowserClient()
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  async function handleConnectSheet() {
+    if (!selected) return
+    setConnecting(true)
+    setConnectError(null)
+
+    const res = await fetch(`/api/gardens/${selected.id}/connect-sheet`, { method: 'POST' })
+    const data = await res.json()
+    setConnecting(false)
+
+    if (!res.ok) {
+      setConnectError(data.error ?? 'Could not connect sheet — please try again.')
+      return
+    }
+
+    // Update local state so the UI switches to the "linked" view immediately
+    const updated = { ...selected, google_sheet_id: data.google_sheet_id }
+    setSelected(updated)
+    setGardens(gs => gs.map(g => g.id === updated.id ? updated : g))
   }
 
   return (
@@ -191,6 +220,25 @@ export default function SettingsPage() {
                       Open spreadsheet →
                     </a>
                   </div>
+                ) : isGoogleUser ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleConnectSheet}
+                      disabled={connecting}
+                      className="btn-primary disabled:opacity-50"
+                    >
+                      {connecting ? 'Creating sheet…' : 'Connect Google Sheet'}
+                    </button>
+                    <p className="text-xs text-bark/50 font-sans mt-1.5">
+                      Creates a new Google Spreadsheet in your Drive and links it to this garden.
+                    </p>
+                    {connectError && (
+                      <p className="text-harvest text-sm bg-harvest/8 border border-harvest/20 rounded-xl px-4 py-3 font-sans mt-3">
+                        {connectError}
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <>
                     <input
