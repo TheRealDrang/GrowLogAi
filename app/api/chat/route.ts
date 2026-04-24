@@ -124,9 +124,9 @@ export async function POST(request: NextRequest) {
       })
 
       stream.on('finalMessage', async () => {
-        controller.close()
-
         // Extract the session log JSON from the tail of the response
+        // Claude chose this approach because: controller.close() is called last so
+        // Next.js 16 doesn't terminate the function before DB/sheet writes complete
         const { cleanText, log } = extractSessionLog(fullText)
 
         // Save assistant message (clean version — no json block)
@@ -251,6 +251,8 @@ export async function POST(request: NextRequest) {
             await supabase.from('conversations').delete().in('id', ids)
           }
         }
+
+        controller.close()
       })
     },
   })
