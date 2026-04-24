@@ -107,7 +107,7 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
     }
 
     // Claude chose this approach because: Web Speech API is free, built-in, and requires no API keys
-    const w = window as Record<string, unknown>
+    const w = window as unknown as Record<string, unknown>
     const SR = (w.SpeechRecognition || w.webkitSpeechRecognition) as (new () => SpeechRecognitionInstance) | undefined
     if (!SR) return
 
