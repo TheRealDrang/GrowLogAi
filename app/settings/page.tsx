@@ -39,6 +39,8 @@ export default function SettingsPage() {
   const [isGoogleUser, setIsGoogleUser] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetch('/api/gardens')
@@ -64,6 +66,7 @@ export default function SettingsPage() {
     })
     setSaved(false)
     setError(null)
+    setConfirmDelete(false)
   }
 
   async function lookupLocation(value: string) {
@@ -141,6 +144,29 @@ export default function SettingsPage() {
     const updated = { ...selected, google_sheet_id: data.google_sheet_id }
     setSelected(updated)
     setGardens(gs => gs.map(g => g.id === updated.id ? updated : g))
+  }
+
+  async function handleDeleteGarden() {
+    if (!selected) return
+    setDeleting(true)
+
+    const res = await fetch(`/api/gardens/${selected.id}`, { method: 'DELETE' })
+    setDeleting(false)
+
+    if (!res.ok) {
+      setError('Could not delete garden — please try again.')
+      setConfirmDelete(false)
+      return
+    }
+
+    const remaining = gardens.filter(g => g.id !== selected.id)
+    setGardens(remaining)
+    if (remaining.length > 0) {
+      selectGarden(remaining[0])
+    } else {
+      setSelected(null)
+      router.push('/dashboard')
+    }
   }
 
   return (
@@ -269,6 +295,41 @@ export default function SettingsPage() {
               <button type="submit" disabled={saving} className="btn-primary disabled:opacity-50">
                 {saving ? 'Saving…' : 'Save changes'}
               </button>
+
+              <div className="border-t border-sage/20 pt-5 mt-2">
+                {!confirmDelete ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    className="text-sm font-sans text-harvest hover:text-harvest/80 border border-harvest/20 hover:border-harvest/40 rounded-xl px-4 py-2.5 transition-colors"
+                  >
+                    Delete garden
+                  </button>
+                ) : (
+                  <div className="bg-harvest/8 border border-harvest/20 rounded-xl px-4 py-4 space-y-3">
+                    <p className="text-sm font-sans text-soil">
+                      Delete <strong>{selected.name}</strong>? This will permanently remove the garden and all its crops and chat history.
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(false)}
+                        className="btn-ghost text-sm flex-1"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeleteGarden}
+                        disabled={deleting}
+                        className="text-sm font-sans text-parchment bg-harvest hover:bg-harvest/90 rounded-xl px-4 py-2.5 flex-1 disabled:opacity-50 transition-colors"
+                      >
+                        {deleting ? 'Deleting…' : 'Yes, delete'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </form>
           )}
         </section>
