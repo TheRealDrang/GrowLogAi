@@ -21,10 +21,18 @@ const dmMono = DM_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "GrowLog AI — Your Garden Journal",
-  description: "Chat with an AI advisor about your crops. Weather-aware advice, observation logging, and automatic Google Sheets sync.",
-};
+import * as Sentry from '@sentry/nextjs';
+
+// Claude chose this approach because: Sentry requires generateMetadata (not static metadata) to inject trace headers for error tracking
+export function generateMetadata(): Metadata {
+  return {
+    title: "GrowLog AI — Your Garden Journal",
+    description: "Chat with an AI advisor about your crops. Weather-aware advice, observation logging, and automatic Google Sheets sync.",
+    other: {
+      ...Sentry.getTraceData()
+    }
+  };
+}
 
 export default function RootLayout({
   children,

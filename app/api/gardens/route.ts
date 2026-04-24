@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/gardens — list all gardens for the current user
 export async function GET() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
@@ -25,7 +25,7 @@ export async function GET() {
 // POST /api/gardens — create a new garden
 // For Google OAuth users, automatically creates a linked Google Spreadsheet
 export async function POST(request: NextRequest) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {

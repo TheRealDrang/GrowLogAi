@@ -5,7 +5,7 @@ import CropChatClient from './CropChatClient'
 import EditCropModal from '@/components/EditCropModal'
 
 export default async function CropPage({ params }: { params: { id: string } }) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 

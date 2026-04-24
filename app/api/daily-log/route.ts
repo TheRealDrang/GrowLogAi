@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server'
 // Called from the dashboard on mount. Logs today's weather to the "Daily Log" tab
 // of every garden spreadsheet that hasn't been logged yet today.
 export async function POST() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

@@ -3,8 +3,8 @@ import { cookies } from 'next/headers'
 
 // Server-side Supabase client — only for Server Components and Route Handlers
 // For Client Components, use lib/supabase-browser.ts instead
-export function createSupabaseServerClient() {
-  const cookieStore = cookies()
+export async function createSupabaseServerClient() {
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

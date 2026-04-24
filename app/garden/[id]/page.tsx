@@ -7,7 +7,7 @@ import BottomNav from '@/components/BottomNav'
 import DirtFooter from '@/components/DirtFooter'
 
 export default async function GardenPage({ params }: { params: { id: string } }) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 

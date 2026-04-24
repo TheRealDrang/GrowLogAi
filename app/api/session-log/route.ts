@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // POST /api/session-log — retry posting a failed session log to the sheet
 // Body: { session_log_id: string }
 export async function POST(request: NextRequest) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

@@ -8,7 +8,7 @@ import DailyWeatherTrigger from '@/components/DailyWeatherTrigger'
 import DirtFooter from '@/components/DirtFooter'
 
 export default async function DashboardPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 

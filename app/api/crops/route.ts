@@ -5,7 +5,7 @@ const MAX_CROPS_PER_GARDEN = 20
 
 // GET /api/crops?garden_id=xxx — list crops for a garden
 export async function GET(request: NextRequest) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/crops — create a crop (enforces 20-crop limit)
 export async function POST(request: NextRequest) {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
