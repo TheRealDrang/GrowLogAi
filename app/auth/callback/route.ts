@@ -37,16 +37,22 @@ export async function GET(request: NextRequest) {
     let sessionUser = null
     let sessionProviderRefreshToken: string | null = null
 
+    let exchangeError: string | null = null
+
     if (code) {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code)
       if (!error && data.session) {
         sessionUser = data.session.user
         sessionProviderRefreshToken = data.session.provider_refresh_token ?? null
+      } else if (error) {
+        exchangeError = error.message
       }
     } else if (token_hash && type) {
       const { data, error } = await supabase.auth.verifyOtp({ token_hash, type })
       if (!error && data.session) {
         sessionUser = data.session.user
+      } else if (error) {
+        exchangeError = error.message
       }
     }
 
@@ -88,6 +94,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Redirect to login with error if exchange fails
-  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+  // Redirect to login with error details for diagnosis
+  const msg = encodeURIComponent(exchangeError ?? 'no_code_or_token')
+  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed&detail=${msg}`)
 }
