@@ -265,19 +265,10 @@ export default function SettingsPage() {
                     )}
                   </>
                 ) : (
-                  <>
-                    <input
-                      type="url"
-                      value={form.sheet_url}
-                      onChange={e => setForm(f => ({ ...f, sheet_url: e.target.value }))}
-                      className="input"
-                      placeholder="https://script.google.com/macros/s/…/exec"
-                    />
-                    <p className="text-xs text-bark/50 font-sans mt-1.5">
-                      Your Apps Script web app URL.{' '}
-                      <Link href="/onboarding" className="text-moss hover:underline">Setup guide →</Link>
-                    </p>
-                  </>
+                  <p className="text-xs text-bark/50 font-sans">
+                    No sheet connected.{' '}
+                    <a href="/onboarding/sheets" className="text-moss hover:underline">Connect Google Sheets →</a>
+                  </p>
                 )}
               </div>
 

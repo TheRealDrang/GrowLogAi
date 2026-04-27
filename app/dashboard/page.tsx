@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
+import { getOnboardingRedirect } from '@/lib/onboarding'
 import Link from 'next/link'
 import NewGardenModal from '@/components/NewGardenModal'
 import SignOutButtonClient from '@/components/SignOutButton'
@@ -11,6 +12,10 @@ export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Resume-state recovery: redirect mid-onboarding users back to where they left off
+  const onboardingPath = await getOnboardingRedirect(supabase, user)
+  if (onboardingPath) redirect(onboardingPath)
 
   const { data: gardens } = await supabase
     .from('gardens')

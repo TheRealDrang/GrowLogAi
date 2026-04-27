@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { getOnboardingRedirect } from '@/lib/onboarding'
 
 // Handles Supabase email confirmation and OAuth redirects
 export async function GET(request: NextRequest) {
@@ -56,7 +57,9 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      return NextResponse.redirect(`${origin}${next}`)
+      // Route new/incomplete users through onboarding; fall back to `next` param
+      const onboardingPath = await getOnboardingRedirect(supabase, data.session.user)
+      return NextResponse.redirect(`${origin}${onboardingPath ?? next}`)
     }
   }
 
