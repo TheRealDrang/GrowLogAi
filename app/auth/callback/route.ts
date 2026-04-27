@@ -50,6 +50,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Fallback: linkIdentity returns a code that exchangeCodeForSession may reject
+    // because the user is already logged in. Check for an existing session instead.
+    if (!sessionUser) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) sessionUser = user
+    }
+
     if (sessionUser) {
       // Store Google refresh token if present (OAuth sign-ins only)
       if (sessionProviderRefreshToken) {
