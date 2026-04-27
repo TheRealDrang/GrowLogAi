@@ -42,7 +42,11 @@ interface Props {
 }
 
 function stripJsonBlock(text: string): string {
-  return text.replace(/```json[\s\S]*?```\s*$/g, '').trimEnd()
+  // Remove complete json blocks (closing ``` present)
+  let out = text.replace(/```json[\s\S]*?```\s*$/g, '').trimEnd()
+  // Remove partial json blocks still streaming in (no closing ``` yet)
+  out = out.replace(/```json[\s\S]*$/, '').trimEnd()
+  return out
 }
 
 function daysSince(dateStr: string): number {
@@ -81,6 +85,7 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
   const [isListening, setIsListening] = useState(false)
   const [supportsVoice, setSupportsVoice] = useState(false)
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null)
+  const [loggingToDiary, setLoggingToDiary] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -238,6 +243,9 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
 
       setMessages(prev => [...prev, { role: 'assistant', content: stripJsonBlock(full) }])
       setStreamBuffer('')
+      // Show brief diary-saving indicator, then hide
+      setLoggingToDiary(true)
+      setTimeout(() => setLoggingToDiary(false), 2500)
     } catch {
       setMessages(prev => [
         ...prev,
@@ -324,6 +332,18 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
                   <span className="w-1.5 h-1.5 bg-sage rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Diary save indicator — appears briefly after each AI response */}
+          {loggingToDiary && (
+            <div className="flex items-center gap-1.5 ml-9 animate-pulse">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+                   className="w-3 h-3 text-moss flex-shrink-0">
+                <path d="M12 22V12" strokeLinecap="round"/>
+                <path d="M12 12C12 12 7 8 7 4.5a5 5 0 0110 0C17 8 12 12 12 12z" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="text-[10px] text-moss/60 font-sans">saving to diary…</span>
             </div>
           )}
 
