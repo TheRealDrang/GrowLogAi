@@ -190,7 +190,10 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
       const resized = await resizeImage(file)
       setAttachedImage(resized)
     } catch {
-      // silently ignore — if resize fails, no image attached
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: "That photo couldn't be attached — the file may be too large or in an unsupported format. Try a different image." },
+      ])
     }
   }
 

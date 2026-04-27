@@ -25,7 +25,14 @@ export default function SheetsPage() {
     // Claude chose this approach because: linkIdentity redirects on success,
     // so we only land here if there was an error before redirect
     if (linkError) {
-      setError(linkError.message)
+      const msg = linkError.message.toLowerCase()
+      if (msg.includes('identity') && msg.includes('already')) {
+        setError('That Google account is already connected to a different GrowLog account. Please use a different Google account.')
+      } else if (msg.includes('popup') || msg.includes('cancelled') || msg.includes('canceled')) {
+        setError('Google sign-in was cancelled. Click below to try again.')
+      } else {
+        setError('Google connection failed — please try again.')
+      }
       setLoading(false)
     }
   }

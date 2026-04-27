@@ -66,7 +66,16 @@ export default function SignupPage() {
     })
 
     if (error) {
-      setError(error.message)
+      const msg = error.message.toLowerCase()
+      if (msg.includes('already registered') || msg.includes('already exists')) {
+        setError('An account with that email already exists. Try signing in instead.')
+      } else if (msg.includes('rate limit') || msg.includes('too many')) {
+        setError('Too many attempts — please wait a few minutes and try again.')
+      } else if (msg.includes('invalid') && msg.includes('email')) {
+        setError('That doesn\'t look like a valid email address.')
+      } else {
+        setError('Something went wrong creating your account — please try again.')
+      }
       setLoading(false)
       return
     }
