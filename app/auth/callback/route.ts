@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type') as EmailOtpType | null
   const next = searchParams.get('next') ?? '/dashboard'
 
+  let exchangeError: string | null = null
+
   // Both flows share the same Supabase client setup
   if (code || (token_hash && type)) {
     const cookieStore = await cookies()
@@ -36,8 +38,6 @@ export async function GET(request: NextRequest) {
     // but email confirmation links use `token_hash` + `type`
     let sessionUser = null
     let sessionProviderRefreshToken: string | null = null
-
-    let exchangeError: string | null = null
 
     if (code) {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code)
