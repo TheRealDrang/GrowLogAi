@@ -63,7 +63,7 @@ export default function SheetsPage() {
       {error ? (
         <div className="mb-5">
           <p className="text-harvest text-sm bg-harvest/8 border border-harvest/20 rounded-xl px-4 py-3 font-sans mb-4">
-            No problem — try again when you&apos;re ready.
+            {error ?? 'No problem — try again when you\'re ready.'}
           </p>
           <button
             onClick={handleConnect}
