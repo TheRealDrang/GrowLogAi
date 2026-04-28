@@ -92,7 +92,7 @@ export default function SignupPage() {
       provider: 'google',
       options: {
         // Request Sheets + Drive scopes so we can auto-log to the user's Google Sheet
-        scopes: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
+        scopes: 'https://www.googleapis.com/auth/drive.file',
         redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
           // Always prompt so refresh_token is included
