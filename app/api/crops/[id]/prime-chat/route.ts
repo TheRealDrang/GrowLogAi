@@ -54,7 +54,7 @@ Write a welcome message (2–3 sentences) that:
 Keep it friendly and concise. Do not add a JSON log block — this is a greeting, not a session log.`
 
   const response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: process.env.ANTHROPIC_BACKGROUND_MODEL ?? 'claude-haiku-4-5-20251001',
     max_tokens: 200,
     messages: [{ role: 'user', content: prompt }],
   })

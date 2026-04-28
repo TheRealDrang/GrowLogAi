@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
   // Stream response from Anthropic
   const stream = anthropic.messages.stream({
-    model: 'claude-sonnet-4-6',
+    model: process.env.ANTHROPIC_CHAT_MODEL ?? 'claude-sonnet-4-6',
     max_tokens: 1024,
     system: systemPrompt,
     messages: [
