@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import BedLocationPicker from '@/components/BedLocationPicker'
 
 interface Props {
   gardenId: string
@@ -94,12 +95,7 @@ export default function NewCropModal({ gardenId }: Props) {
 
               <div>
                 <label className="label">Bed / Location in garden</label>
-                <input
-                  value={bedLocation}
-                  onChange={e => setBedLocation(e.target.value)}
-                  className="input"
-                  placeholder="e.g. Raised bed A, south corner"
-                />
+                <BedLocationPicker gardenId={gardenId} value={bedLocation} onChange={setBedLocation} />
               </div>
 
               <div>

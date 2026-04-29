@@ -68,7 +68,7 @@ export default async function CropPage({ params }: { params: Promise<{ id: strin
             )}
           </div>
 
-          <EditCropModal crop={crop} />
+          <EditCropModal crop={crop} gardenId={garden.id} />
         </div>
       </header>
 

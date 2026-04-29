@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import BedLocationPicker from '@/components/BedLocationPicker'
 
 interface Crop {
   id: string
@@ -15,6 +16,7 @@ interface Crop {
 
 interface Props {
   crop: Crop
+  gardenId: string
 }
 
 const STATUS_OPTIONS = [
@@ -23,7 +25,7 @@ const STATUS_OPTIONS = [
   { value: 'failed',    label: 'Failed' },
 ]
 
-export default function EditCropModal({ crop }: Props) {
+export default function EditCropModal({ crop, gardenId }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
@@ -129,12 +131,7 @@ export default function EditCropModal({ crop }: Props) {
 
               <div>
                 <label className="label">Bed / Location</label>
-                <input
-                  value={form.bed_location}
-                  onChange={e => set('bed_location', e.target.value)}
-                  className="input"
-                  placeholder="e.g. Raised bed A, south corner"
-                />
+                <BedLocationPicker gardenId={gardenId} value={form.bed_location} onChange={v => set('bed_location', v)} />
               </div>
 
               <div>

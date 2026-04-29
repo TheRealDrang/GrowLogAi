@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import StepIndicator from '@/components/StepIndicator'
+import BedLocationPicker from '@/components/BedLocationPicker'
 
 function CropForm() {
   const router = useRouter()
@@ -104,12 +105,7 @@ function CropForm() {
 
         <div>
           <label className="label">Bed / Location in garden</label>
-          <input
-            value={bedLocation}
-            onChange={e => setBedLocation(e.target.value)}
-            className="input"
-            placeholder="e.g. Raised bed A, south corner"
-          />
+          <BedLocationPicker gardenId={gardenId} value={bedLocation} onChange={setBedLocation} />
         </div>
 
         <div>
