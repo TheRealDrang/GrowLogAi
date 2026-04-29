@@ -59,10 +59,17 @@ export default function SettingsPage() {
   function selectGarden(g: Garden) {
     setSelected(g)
     setForm({ location: g.location ?? '', sheet_url: g.sheet_url ?? '' })
+    const hasCoords = !!g.latitude && !!g.longitude
     setGeo({
       lat: g.latitude, lon: g.longitude, zone: g.usda_zone,
-      status: g.usda_zone ? 'found' : 'idle',
-      message: g.usda_zone ? `Zone ${g.usda_zone} (saved)` : '',
+      // Claude chose this approach because: show 'found' whenever coords exist so the
+      // green confirmation always appears — zone can be null without hiding the address
+      status: hasCoords ? 'found' : 'idle',
+      message: g.usda_zone
+        ? `Zone ${g.usda_zone} · ${g.location ?? ''} — saved and in use`
+        : hasCoords
+          ? `${g.location ?? ''} — coordinates saved, zone not detected`
+          : '',
     })
     setSaved(false)
     setError(null)
@@ -226,7 +233,20 @@ export default function SettingsPage() {
                   placeholder="123 Main St, Portland, OR"
                 />
                 {geo.status === 'loading' && <p className="text-xs text-bark/60 mt-1.5 font-sans animate-pulse">{geo.message}</p>}
-                {geo.status === 'found' && <p className="text-xs text-moss font-sans mt-1.5">✓ {geo.message}</p>}
+                {geo.status === 'found' && (
+                  <div className="mt-1.5">
+                    <p className="text-xs text-moss font-sans">✓ {geo.message}</p>
+                    {!geo.zone && form.location && (
+                      <button
+                        type="button"
+                        onClick={() => lookupLocation(form.location)}
+                        className="text-xs text-moss font-sans underline mt-0.5"
+                      >
+                        Re-detect zone →
+                      </button>
+                    )}
+                  </div>
+                )}
                 {geo.status === 'error' && <p className="text-xs text-harvest font-sans mt-1.5">⚠ {geo.message}</p>}
                 {geo.status === 'idle' && <p className="text-xs text-bark/50 font-sans mt-1.5">Enter a street address for best results. Zone and coordinates detect automatically.</p>}
               </div>
