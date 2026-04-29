@@ -1,7 +1,7 @@
 // Google Sheets API helpers — used for Google OAuth users only.
 // Email/password users continue to use the Apps Script approach.
 
-const HEADERS = ['Date', 'Crop', 'Variety', 'Bed', 'Observation', 'Action Taken', 'AI Advice', 'Weather']
+const HEADERS = ['Date', 'Crop', 'Variety', 'Bed', 'Observation', 'Action Taken', 'AI Advice', 'Weather', 'Full Response']
 
 export interface SheetRowData {
   log_date: string
@@ -12,6 +12,7 @@ export interface SheetRowData {
   action_taken: string
   ai_advice: string
   weather_summary: string
+  full_response: string
 }
 
 // Exchange a stored refresh token for a fresh access token
@@ -138,6 +139,7 @@ export async function appendToSheet(
     row.action_taken,
     row.ai_advice,
     row.weather_summary,
+    row.full_response,
   ]
 
   const rangeUrl = (range: string) =>
@@ -164,6 +166,11 @@ export async function appendToSheet(
 
   if (!addSheetRes.ok) return false
 
+  // Claude chose this approach because: reading the new sheetId lets us set clip-wrap
+  // on the Full Response column so it doesn't expand row height in the spreadsheet
+  const addSheetData = await addSheetRes.json()
+  const newSheetId = addSheetData.replies?.[0]?.addSheet?.properties?.sheetId
+
   // Write header row + data row
   const writeRes = await fetch(rangeUrl(`${sheetTitle}!A1`), {
     method: 'POST',
@@ -171,5 +178,24 @@ export async function appendToSheet(
     body: JSON.stringify({ values: [HEADERS, values] }),
   })
 
-  return writeRes.ok
+  if (!writeRes.ok) return false
+
+  // Set clip (no-wrap) on the Full Response column (column I, index 8) for new tabs
+  if (newSheetId !== undefined) {
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requests: [{
+          repeatCell: {
+            range: { sheetId: newSheetId, startColumnIndex: 8, endColumnIndex: 9 },
+            cell: { userEnteredFormat: { wrapStrategy: 'CLIP' } },
+            fields: 'userEnteredFormat.wrapStrategy',
+          },
+        }],
+      }),
+    })
+  }
+
+  return true
 }

@@ -174,6 +174,7 @@ export async function POST(request: NextRequest) {
             action_taken: log.action_taken,
             ai_advice: log.ai_advice,
             weather_summary: log.weather_summary,
+            full_response: cleanText,
           }
 
           if (garden.google_sheet_id) {
