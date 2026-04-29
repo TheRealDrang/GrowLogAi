@@ -16,6 +16,7 @@ export default function BottomNav({ gardenId, cropId }: Props) {
       href: '/dashboard',
       label: 'Gardens',
       active: path === '/dashboard',
+      disabled: false,
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6">
           <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -27,6 +28,9 @@ export default function BottomNav({ gardenId, cropId }: Props) {
       href: gardenId ? `/garden/${gardenId}` : '/dashboard',
       label: 'Crops',
       active: !!gardenId && path.startsWith('/garden/'),
+      // Claude chose this approach because: no gardenId means there's no specific
+      // crop list to navigate to — the button would just loop back to dashboard
+      disabled: !gardenId,
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6">
           <path d="M12 22V12" strokeLinecap="round"/>
@@ -35,9 +39,12 @@ export default function BottomNav({ gardenId, cropId }: Props) {
       ),
     },
     {
-      href: cropId ? `/crop/${cropId}` : (gardenId ? `/garden/${gardenId}` : '/dashboard'),
+      href: cropId ? `/crop/${cropId}` : '/dashboard',
       label: 'Chat',
       active: path.startsWith('/crop/'),
+      // Claude chose this approach because: chat only makes sense within a specific
+      // crop — without a cropId there's no conversation to navigate to
+      disabled: !cropId,
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -48,6 +55,7 @@ export default function BottomNav({ gardenId, cropId }: Props) {
       href: '/settings',
       label: 'Settings',
       active: path === '/settings',
+      disabled: false,
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6">
           <circle cx="12" cy="12" r="3" strokeLinecap="round"/>
@@ -60,27 +68,46 @@ export default function BottomNav({ gardenId, cropId }: Props) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-soil-deep safe-area-pb">
       <div className="flex items-stretch h-16">
-        {items.map(item => (
-          <Link
-            key={item.label}
-            href={item.href}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors min-h-[48px] ${
-              item.active
-                ? 'text-parchment'
-                : 'text-parchment/40 hover:text-parchment/70'
-            }`}
-          >
-            <span className={`transition-transform ${item.active ? 'scale-110' : ''}`}>
-              {item.icon}
-            </span>
-            <span className={`text-[10px] font-sans font-medium tracking-wide`}>
-              {item.label}
-            </span>
-            {item.active && (
-              <span className="absolute bottom-0 w-8 h-0.5 bg-parchment rounded-t-full" />
-            )}
-          </Link>
-        ))}
+        {items.map(item => {
+          const sharedClass = `flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[48px]`
+          const content = (
+            <>
+              <span className={`transition-transform ${item.active ? 'scale-110' : ''}`}>
+                {item.icon}
+              </span>
+              <span className="text-[10px] font-sans font-medium tracking-wide">
+                {item.label}
+              </span>
+              {item.active && (
+                <span className="absolute bottom-0 w-8 h-0.5 bg-parchment rounded-t-full" />
+              )}
+            </>
+          )
+
+          if (item.disabled) {
+            return (
+              <span
+                key={item.label}
+                className={`${sharedClass} text-parchment/20 cursor-default`}
+                aria-disabled="true"
+              >
+                {content}
+              </span>
+            )
+          }
+
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`${sharedClass} transition-colors ${
+                item.active ? 'text-parchment' : 'text-parchment/40 hover:text-parchment/70'
+              }`}
+            >
+              {content}
+            </Link>
+          )
+        })}
       </div>
     </nav>
   )
