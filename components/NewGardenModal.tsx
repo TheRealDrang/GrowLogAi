@@ -45,8 +45,8 @@ export default function NewGardenModal() {
       zone: data.zone,
       status: 'found',
       message: data.zone
-        ? `Zone ${data.zone} · ${data.displayName.split(',').slice(0, 2).join(',').trim()}`
-        : `${data.displayName.split(',').slice(0, 2).join(',').trim()} — zone not detected, but coordinates saved`,
+        ? `Zone ${data.zone} · ${data.displayName.split(',').slice(0, 2).join(',').trim()} — location active`
+        : `${data.displayName.split(',').slice(0, 2).join(',').trim()} — location active`,
     })
   }
 

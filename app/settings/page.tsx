@@ -66,9 +66,9 @@ export default function SettingsPage() {
       // green confirmation always appears — zone can be null without hiding the address
       status: hasCoords ? 'found' : 'idle',
       message: g.usda_zone
-        ? `Zone ${g.usda_zone} · ${g.location ?? ''} — saved and in use`
+        ? `Zone ${g.usda_zone} · ${g.location ?? ''} — location active`
         : hasCoords
-          ? `${g.location ?? ''} — coordinates saved, zone not detected`
+          ? `${g.location ?? ''} — location active`
           : '',
     })
     setSaved(false)
@@ -92,8 +92,8 @@ export default function SettingsPage() {
       lat: data.lat, lon: data.lon, zone: data.zone,
       status: 'found',
       message: data.zone
-        ? `Zone ${data.zone} · ${data.displayName.split(',').slice(0, 2).join(',').trim()}`
-        : `${data.displayName.split(',').slice(0, 2).join(',').trim()} — zone not detected, coordinates saved`,
+        ? `Zone ${data.zone} · ${data.displayName.split(',').slice(0, 2).join(',').trim()} — location active`
+        : `${data.displayName.split(',').slice(0, 2).join(',').trim()} — location active`,
     })
   }
 
