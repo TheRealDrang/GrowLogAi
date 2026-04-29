@@ -13,7 +13,9 @@ export function extractSessionLog(rawText: string): {
 } {
   // Claude chose this approach because: the AI is instructed to always append
   // the json block at the end, so we search from the end for the last ```json block
-  const jsonBlockRegex = /```json\s*\n([\s\S]*?)\n```\s*$/
+  // Claude chose this approach because: the permissive \s* around content handles
+  // cases where Claude omits the newline after the opening fence or before the closing fence
+  const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```\s*$/
 
   const match = rawText.match(jsonBlockRegex)
 
