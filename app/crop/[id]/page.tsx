@@ -28,7 +28,7 @@ export default async function CropPage({ params }: { params: Promise<{ id: strin
 
   const { data: sessionLogs } = await supabase
     .from('session_logs')
-    .select('id, log_date, observation, ai_advice, sheet_posted')
+    .select('id, log_date, observation, ai_advice, sheet_posted, full_response')
     .eq('crop_id', id)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })

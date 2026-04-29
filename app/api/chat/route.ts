@@ -154,6 +154,7 @@ export async function POST(request: NextRequest) {
               weather_summary: log.weather_summary,
               sheet_posted: false,
               raw_json: log,
+              full_response: cleanText,
             })
             .select('id')
             .single()

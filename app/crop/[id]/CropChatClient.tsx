@@ -31,6 +31,7 @@ interface SessionLog {
   observation: string | null
   ai_advice: string | null
   sheet_posted: boolean
+  full_response: string | null
 }
 
 interface Props {
@@ -86,6 +87,7 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
   const [supportsVoice, setSupportsVoice] = useState(false)
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null)
   const [loggingToDiary, setLoggingToDiary] = useState(false)
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -564,29 +566,70 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
                 ? sessionLogs.filter(log =>
                     log.observation?.toLowerCase().includes(q) ||
                     log.ai_advice?.toLowerCase().includes(q) ||
+                    log.full_response?.toLowerCase().includes(q) ||
                     log.log_date.includes(q)
                   )
                 : sessionLogs
               if (filtered.length === 0) return (
                 <p className="px-4 py-6 text-xs text-bark/50 font-sans text-center">No entries match your search.</p>
               )
-              return filtered.map((log) => (
-                <div key={log.id} className="px-4 py-3">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="font-mono text-xs text-bark">{log.log_date}</span>
-                    {log.sheet_posted
-                      ? <span className="text-[10px] text-moss font-sans">✓ Saved to sheet</span>
-                      : <RetryButton sessionLogId={log.id} />
-                    }
+              return filtered.map((log) => {
+                const isExpanded = expandedLogId === log.id
+                return (
+                  <div key={log.id} className="border-b border-sage/10 last:border-0">
+                    {/* Collapsed row — click to expand */}
+                    <button
+                      onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                      className="w-full text-left px-4 py-3 hover:bg-straw/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="font-mono text-xs text-bark">{log.log_date}</span>
+                        {log.sheet_posted
+                          ? <span className="text-[10px] text-moss font-sans">✓ Saved to sheet</span>
+                          : <span className="text-[10px] text-harvest font-sans">Not saved to sheet</span>
+                        }
+                        <span className="ml-auto text-bark/30 text-[10px]">{isExpanded ? '▲' : '▼'}</span>
+                      </div>
+                      {log.observation && (
+                        <p className={`text-xs text-soil font-sans leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
+                          {log.observation}
+                        </p>
+                      )}
+                    </button>
+
+                    {/* Expanded view — full response + follow-up button */}
+                    {isExpanded && (
+                      <div className="px-4 pb-4 space-y-3">
+                        {log.full_response ? (
+                          <p className="text-xs text-soil font-sans leading-relaxed whitespace-pre-wrap">
+                            {log.full_response}
+                          </p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {log.observation && (
+                              <p className="text-xs text-soil font-sans leading-relaxed"><strong>Observed:</strong> {log.observation}</p>
+                            )}
+                            {log.ai_advice && (
+                              <p className="text-xs text-moss font-sans leading-relaxed italic">{log.ai_advice}</p>
+                            )}
+                          </div>
+                        )}
+                        <button
+                          onClick={() => {
+                            setInput(`Following up on my ${log.log_date} diary entry — `)
+                            setLogsOpen(false)
+                            setTimeout(() => textareaRef.current?.focus(), 50)
+                          }}
+                          className="w-full text-left text-xs font-sans font-medium text-moss border border-moss/30
+                                     bg-moss/5 hover:bg-moss/10 rounded-lg px-3 py-2 transition-colors"
+                        >
+                          Ask a follow-up →
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {log.observation && (
-                    <p className="text-xs text-soil font-sans line-clamp-2 leading-relaxed">{log.observation}</p>
-                  )}
-                  {log.ai_advice && (
-                    <p className="text-xs text-moss font-sans mt-1 line-clamp-2 italic leading-relaxed">{log.ai_advice}</p>
-                  )}
-                </div>
-              ))
+                )
+              })
             })()}
           </div>
         </aside>
