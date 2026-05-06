@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>You've been invited to GrowLog AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; background-color: #EDE3C6; }
+    .preview-text { display:none !important; visibility:hidden; mso-hide:all; font-size:1px; color:#EDE3C6; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; }
+    .email-container { width: 100% !important; max-width: 600px; }
+    .hero-pad  { padding: 32px 20px 28px !important; }
+    .content-pad { padding: 28px 20px 24px !important; }
+    .h1 { font-size: 26px !important; line-height: 1.25 !important; }
+    .hero-sub { font-size: 15px !important; }
+    .confirm-btn { display: block !important; text-align: center !important; font-size: 16px !important; padding: 17px 24px !important; }
+    .step-icon-cell { display: block !important; width: 100% !important; text-align: center !important; padding-bottom: 12px !important; padding-right: 0 !important; }
+    .step-text-cell { display: block !important; width: 100% !important; }
+    .step-connector-cell { display: block !important; width: 100% !important; text-align: center !important; }
+    @media only screen and (min-width: 480px) {
+      .hero-pad  { padding: 48px 40px 36px !important; }
+      .content-pad { padding: 36px 40px 32px !important; }
+      .h1 { font-size: 34px !important; }
+      .hero-sub { font-size: 16px !important; }
+      .confirm-btn { display: inline-block !important; font-size: 17px !important; padding: 18px 44px !important; }
+      .step-icon-cell { display: table-cell !important; width: 100px !important; text-align: center !important; padding-right: 20px !important; padding-bottom: 0 !important; vertical-align: middle !important; }
+      .step-text-cell { display: table-cell !important; vertical-align: middle !important; }
+      .step-connector-cell { display: table-cell !important; width: 100px !important; text-align: center !important; padding-right: 20px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#EDE3C6;">
+
+<div class="preview-text">You've been invited — join GrowLog AI and give your garden a memory. Setup takes 3 minutes. 🌿</div>
+
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#EDE3C6;">
+<tr><td align="center" style="padding:24px 12px 32px;">
+
+  <table class="email-container" role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;">
+
+    <!-- ══ LOGO ══ -->
+    <tr>
+      <td align="center" style="padding:16px 0 12px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding-right:8px;vertical-align:middle;font-size:22px;line-height:1;">🌱</td>
+            <td style="vertical-align:middle;">
+              <span style="font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:#3B2F2F;">GrowLog</span><span style="font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:400;font-style:italic;color:#4A6741;">&nbsp;AI</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ══ HERO ══ -->
+    <tr>
+      <td>
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#4A6741;border-radius:20px 20px 0 0;">
+          <tr>
+            <td class="hero-pad" align="center" style="padding:32px 20px 28px;">
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:#8FAF85;margin:0 0 14px 0;">You've been invited</p>
+              <h1 class="h1" style="font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:700;color:#FAF4E6;line-height:1.25;margin:0 0 16px 0;">Your invitation<br><em style="font-style:italic;color:#D4E6CF;">to a smarter garden.</em></h1>
+              <p class="hero-sub" style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:15px;font-weight:300;color:rgba(242,232,201,0.85);line-height:1.65;margin:0;max-width:400px;">Someone thought you'd love having a garden advisor that knows your plants and a diary that writes itself every time you ask a question.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <tr>
+      <td>
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#FAF4E6;">
+          <tr>
+            <td class="content-pad" style="padding:28px 20px 24px;">
+
+              <!-- Greeting -->
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:16px;color:#3B2F2F;line-height:1.65;margin:0 0 6px 0;">Hi {{ if .Data.first_name }}{{ .Data.first_name }}{{ else }}there{{ end }},</p>
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:16px;color:#3B2F2F;line-height:1.65;margin:0 0 28px 0;">You've been personally invited to join GrowLog AI. Click below to accept your invitation and create your account — setup takes about 3 minutes.</p>
+
+              <!-- ══ CTA BUTTON ══ -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="padding:4px 0 8px;">
+                <tr>
+                  <td align="center">
+                    <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=invite" class="confirm-btn"
+                       style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;color:#FAF4E6;text-decoration:none;display:block;padding:17px 24px;border-radius:50px;background-color:#4A6741;text-align:center;max-width:340px;margin:0 auto;box-sizing:border-box;">
+                      Accept my invitation &nbsp;→
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;color:#8FAF85;text-align:center;margin:0 0 32px 0;">
+                This invitation expires in 24 hours.&nbsp;·&nbsp;Button not working?<br>
+                <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=invite" style="color:#7A5C44;text-decoration:underline;">Copy this link instead</a>
+              </p>
+
+              <!-- Divider -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td style="border-top:1px solid #E8D9A8;padding:0 0 28px 0;font-size:0;">&nbsp;</td></tr></table>
+
+              <!-- Steps heading -->
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:#8FAF85;margin:0 0 6px 0;">What you're setting up</p>
+              <h2 style="font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:600;color:#3B2F2F;margin:0 0 28px 0;">Ready to grow in about 3 minutes.</h2>
+
+              <!-- ══ STEP 1 ══ -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td class="step-icon-cell" style="display:block;width:100%;text-align:center;padding-bottom:12px;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                      <tr>
+                        <td style="width:56px;height:56px;border-radius:50%;background-color:#4A6741;text-align:center;vertical-align:middle;">
+                          <span style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:20px;font-weight:700;color:#FAF4E6;line-height:56px;">1</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td class="step-text-cell" style="display:block;width:100%;">
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;color:#3B2F2F;margin:0 0 4px 0;">Accept your invitation</p>
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:14px;color:#7A5C44;line-height:1.6;margin:0;">Click the button above. Your seed is in the ground — everything else grows from here.</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Connector 1→2 -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td class="step-connector-cell" style="display:block;width:100%;text-align:center;padding:14px 0;">
+                    <svg width="4" height="24" viewBox="0 0 4 24" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
+                      <line x1="2" y1="0" x2="2" y2="24" stroke="#8FAF85" stroke-width="2" stroke-dasharray="4,3"/>
+                    </svg>
+                  </td>
+                  <td style="font-size:0;">&nbsp;</td>
+                </tr>
+              </table>
+
+              <!-- ══ STEP 2 ══ -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td class="step-icon-cell" style="display:block;width:100%;text-align:center;padding-bottom:12px;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                      <tr>
+                        <td style="width:56px;height:56px;border-radius:50%;background-color:#4A6741;text-align:center;vertical-align:middle;">
+                          <span style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:20px;font-weight:700;color:#FAF4E6;line-height:56px;">2</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td class="step-text-cell" style="display:block;width:100%;">
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;color:#3B2F2F;margin:0 0 4px 0;">Connect your garden diary</p>
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:14px;color:#7A5C44;line-height:1.6;margin:0;">Create a garden and add your location. GrowLog AI will assign a grow region to support expert advice and create a diary in Google Sheets to track everything.</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Connector 2→3 -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td class="step-connector-cell" style="display:block;width:100%;text-align:center;padding:14px 0;">
+                    <svg width="4" height="24" viewBox="0 0 4 24" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
+                      <line x1="2" y1="0" x2="2" y2="24" stroke="#8FAF85" stroke-width="2" stroke-dasharray="4,3"/>
+                    </svg>
+                  </td>
+                  <td style="font-size:0;">&nbsp;</td>
+                </tr>
+              </table>
+
+              <!-- ══ STEP 3 ══ -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:32px;">
+                <tr>
+                  <td class="step-icon-cell" style="display:block;width:100%;text-align:center;padding-bottom:12px;">
+                    <svg width="72" height="116" viewBox="0 0 80 116" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
+                      <rect x="8" y="94" width="64" height="14" rx="7" fill="#7A5C44"/>
+                      <circle cx="16" cy="98" r="2.5" fill="#6B4F38" opacity="0.5"/>
+                      <circle cx="30" cy="102" r="1.5" fill="#6B4F38" opacity="0.4"/>
+                      <circle cx="50" cy="97" r="2" fill="#6B4F38" opacity="0.5"/>
+                      <circle cx="65" cy="100" r="1.5" fill="#6B4F38" opacity="0.35"/>
+                      <path d="M40 94 Q39 80 40 65 Q40 52 40 38" stroke="#4A6741" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+                      <path d="M40 72 Q30 66 22 68" stroke="#4A6741" stroke-width="2" fill="none" stroke-linecap="round"/>
+                      <path d="M22 68 Q14 62 18 72 Q24 76 30 70 Z" fill="#6B9160"/>
+                      <path d="M40 72 Q50 64 58 67" stroke="#4A6741" stroke-width="2" fill="none" stroke-linecap="round"/>
+                      <path d="M58 67 Q66 60 62 71 Q56 75 50 68 Z" fill="#8FAF85"/>
+                      <path d="M40 55 Q29 47 24 52 Q28 62 40 58 Z" fill="#4A6741" opacity="0.9"/>
+                      <path d="M40 55 Q51 47 56 52 Q52 62 40 58 Z" fill="#6B9160" opacity="0.9"/>
+                      <circle cx="40" cy="32" r="7" fill="#D4E6CF"/>
+                      <circle cx="40" cy="32" r="4" fill="#FAF4E6"/>
+                      <ellipse cx="40" cy="23" rx="3" ry="4.5" fill="#D4E6CF" transform="rotate(0,40,32)"/>
+                      <ellipse cx="40" cy="23" rx="3" ry="4.5" fill="#D4E6CF" transform="rotate(45,40,32)"/>
+                      <ellipse cx="40" cy="23" rx="3" ry="4.5" fill="#D4E6CF" transform="rotate(90,40,32)"/>
+                      <ellipse cx="40" cy="23" rx="3" ry="4.5" fill="#D4E6CF" transform="rotate(135,40,32)"/>
+                      <ellipse cx="40" cy="23" rx="3" ry="4.5" fill="#D4E6CF" transform="rotate(180,40,32)"/>
+                      <ellipse cx="40" cy="23" rx="3" ry="4.5" fill="#D4E6CF" transform="rotate(225,40,32)"/>
+                      <ellipse cx="40" cy="23" rx="3" ry="4.5" fill="#D4E6CF" transform="rotate(270,40,32)"/>
+                      <ellipse cx="40" cy="23" rx="3" ry="4.5" fill="#D4E6CF" transform="rotate(315,40,32)"/>
+                      <circle cx="40" cy="32" r="5" fill="#8FAF85"/>
+                      <circle cx="40" cy="32" r="3" fill="#4A6741"/>
+                      <circle cx="40" cy="16" r="14" fill="#D4822A"/>
+                      <text x="40" y="21" text-anchor="middle" font-family="'DM Sans',Helvetica,Arial,sans-serif" font-size="14" font-weight="700" fill="#FAF4E6">3</text>
+                    </svg>
+                  </td>
+                  <td class="step-text-cell" style="display:block;width:100%;">
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;color:#3B2F2F;margin:0 0 4px 0;">Tell us what you're growing</p>
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:14px;color:#7A5C44;line-height:1.6;margin:0 0 8px 0;">Add your first crop and ask your advisor anything. Your diary writes itself from that first message. You're in full bloom.</p>
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;color:#D4822A;letter-spacing:0.06em;margin:0;">🌸 Your garden advisor is ready and waiting.</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Divider -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td style="border-top:1px solid #E8D9A8;padding:0 0 28px 0;font-size:0;">&nbsp;</td></tr></table>
+
+              <!-- Quote block -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#F2E8C9;border-radius:14px;border-left:4px solid #4A6741;">
+                <tr>
+                  <td style="padding:20px 22px;">
+                    <p style="font-family:'Playfair Display',Georgia,serif;font-size:16px;font-style:italic;color:#3B2F2F;line-height:1.6;margin:0 0 10px 0;">&ldquo;I used to write in a garden diary daily; but that was slow, wasn&rsquo;t easily searchable and still had to find expert advice. Now I just have the GrowLogAI app to solve all that in real time.&rdquo;</p>
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;color:#8FAF85;letter-spacing:0.1em;text-transform:uppercase;margin:0;">&mdash; John Dering, Gardening novice &amp; Founder GrowLogAI</p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ══ DIRT FOOTER ILLUSTRATION ══ -->
+    <tr>
+      <td style="padding:0;line-height:0;font-size:0;">
+        <svg width="600" height="160" viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;max-width:600px;" preserveAspectRatio="xMidYMid slice">
+          <rect x="0" y="50" width="600" height="110" fill="#5C3D1E"/>
+          <rect x="0" y="82" width="600" height="78" fill="#6B4A28"/>
+          <rect x="0" y="110" width="600" height="50" fill="#7A5432"/>
+          <rect x="0" y="138" width="600" height="22" fill="#4A2E14"/>
+          <path d="M0 50 Q30 42 60 48 Q90 54 120 46 Q150 38 180 50 Q210 58 240 45 Q270 36 300 48 Q330 56 360 44 Q390 36 420 50 Q450 58 480 46 Q510 38 540 50 Q570 56 600 48 L600 50 L0 50 Z" fill="#6B4A28"/>
+          <path d="M0 52 Q40 45 80 51 Q120 57 160 47 Q200 39 240 52 Q280 60 320 48 Q360 40 400 53 Q440 60 480 49 Q520 41 560 53 Q580 57 600 51 L600 54 L0 54 Z" fill="#5C3D1E" opacity="0.7"/>
+          <ellipse cx="45" cy="58" rx="8" ry="5" fill="#8B7355" opacity="0.7"/>
+          <ellipse cx="130" cy="62" rx="6" ry="4" fill="#7A6048" opacity="0.65"/>
+          <ellipse cx="220" cy="56" rx="9" ry="5.5" fill="#8B7050" opacity="0.6"/>
+          <ellipse cx="310" cy="64" rx="5" ry="3.5" fill="#7A6040" opacity="0.7"/>
+          <ellipse cx="390" cy="57" rx="7" ry="4.5" fill="#8B7050" opacity="0.6"/>
+          <ellipse cx="460" cy="61" rx="6" ry="4" fill="#7A6048" opacity="0.65"/>
+          <ellipse cx="540" cy="58" rx="8" ry="5" fill="#8B7355" opacity="0.6"/>
+          <circle cx="90" cy="70" r="3.5" fill="#8B7050" opacity="0.5"/>
+          <circle cx="175" cy="68" r="2.5" fill="#9A8060" opacity="0.45"/>
+          <circle cx="265" cy="73" r="3" fill="#8B7050" opacity="0.5"/>
+          <circle cx="345" cy="69" r="2.5" fill="#9A8060" opacity="0.5"/>
+          <circle cx="430" cy="72" r="3" fill="#8B7050" opacity="0.45"/>
+          <circle cx="508" cy="67" r="2.5" fill="#9A8060" opacity="0.5"/>
+          <path d="M160 92 Q168 86 180 90 Q192 96 202 90 Q212 85 220 89" stroke="#C1785A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+          <path d="M160 92 Q168 86 180 90 Q192 96 202 90 Q212 85 220 89" stroke="#D4907A" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>
+          <circle cx="158" cy="92" r="3" fill="#C1785A"/>
+          <path d="M110 52 Q108 64 105 76 Q102 88 108 100" stroke="#4A2E14" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.6"/>
+          <path d="M110 52 Q115 66 112 80" stroke="#4A2E14" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.5"/>
+          <path d="M300 52 Q297 66 294 80 Q291 94 296 106" stroke="#4A2E14" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.55"/>
+          <path d="M300 52 Q306 68 303 82" stroke="#4A2E14" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.5"/>
+          <path d="M490 52 Q488 65 485 78 Q482 90 488 102" stroke="#4A2E14" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.55"/>
+          <path d="M110 52 Q108 40 110 28 Q111 18 110 8" stroke="#4A6741" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M110 28 Q98 20 94 26 Q98 36 110 32 Z" fill="#6B9160"/>
+          <path d="M110 28 Q122 20 126 26 Q122 36 110 32 Z" fill="#8FAF85"/>
+          <path d="M110 8 Q106 0 109 -4 Q113 0 110 8 Z" fill="#4A6741" opacity="0.8"/>
+          <path d="M300 52 Q297 38 299 24 Q300 10 300 0" stroke="#4A6741" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+          <path d="M300 36 Q286 28 281 34 Q285 44 300 40 Z" fill="#4A6741" opacity="0.9"/>
+          <path d="M300 36 Q314 28 319 34 Q315 44 300 40 Z" fill="#6B9160" opacity="0.9"/>
+          <path d="M300 20 Q290 12 286 18 Q290 26 300 23 Z" fill="#6B9160"/>
+          <path d="M300 20 Q310 12 314 18 Q310 26 300 23 Z" fill="#8FAF85"/>
+          <path d="M490 52 Q488 40 490 28 Q491 16 490 6" stroke="#4A6741" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M490 30 Q478 23 474 29 Q478 38 490 34 Z" fill="#6B9160"/>
+          <path d="M490 30 Q502 23 506 29 Q502 38 490 34 Z" fill="#8FAF85"/>
+          <path d="M490 14 Q484 7 487 3 Q492 7 490 14 Z" fill="#4A6741" opacity="0.75"/>
+          <path d="M490 14 Q496 7 493 3 Q488 7 490 14 Z" fill="#6B9160" opacity="0.7"/>
+        </svg>
+      </td>
+    </tr>
+
+    <!-- ══ FOOTER TEXT ══ -->
+    <tr>
+      <td style="background-color:#4A2E14;padding:18px 20px 24px;" align="center">
+        <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;color:#C4A882;margin:0 0 6px 0;">
+          <a href="mailto:support@growlogai.com" style="color:#C4A882;">Get help</a>
+          &nbsp;·&nbsp;
+          <a href="#" style="color:#C4A882;">Privacy policy</a>
+          &nbsp;·&nbsp;
+          <a href="#" style="color:#C4A882;">Unsubscribe</a>
+        </p>
+        <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;color:#8B6B50;margin:0;">
+          &copy; 2026 GrowLog AI &nbsp;&middot;&nbsp; You received this invitation from a GrowLog AI user.
+        </p>
+      </td>
+    </tr>
+
+    <tr><td style="padding:20px 0;">&nbsp;</td></tr>
+
+  </table>
+
+</td></tr>
+</table>
+</body>
+</html>
