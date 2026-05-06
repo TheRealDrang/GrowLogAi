@@ -64,6 +64,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (sessionUser) {
+      // Password reset flow — skip onboarding and go straight to the reset form
+      if (type === 'recovery') {
+        return NextResponse.redirect(`${origin}/auth/reset-password`)
+      }
+
       // Store Google refresh token if present (OAuth sign-ins only)
       if (sessionProviderRefreshToken) {
         await supabase.from('user_google_tokens').upsert({

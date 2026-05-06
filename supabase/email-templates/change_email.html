@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Confirm your new email address — GrowLog AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; background-color: #EDE3C6; }
+    .preview-text { display:none !important; visibility:hidden; mso-hide:all; font-size:1px; color:#EDE3C6; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; }
+    .email-container { width: 100% !important; max-width: 600px; }
+    .hero-pad  { padding: 32px 20px 28px !important; }
+    .content-pad { padding: 28px 20px 24px !important; }
+    .h1 { font-size: 26px !important; line-height: 1.25 !important; }
+    .hero-sub { font-size: 15px !important; }
+    .confirm-btn { display: block !important; text-align: center !important; font-size: 16px !important; padding: 17px 24px !important; }
+    @media only screen and (min-width: 480px) {
+      .hero-pad  { padding: 48px 40px 36px !important; }
+      .content-pad { padding: 36px 40px 32px !important; }
+      .h1 { font-size: 34px !important; }
+      .hero-sub { font-size: 16px !important; }
+      .confirm-btn { display: inline-block !important; font-size: 17px !important; padding: 18px 44px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#EDE3C6;">
+
+<div class="preview-text">Confirm your new email address to complete the change on your GrowLog AI account.</div>
+
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#EDE3C6;">
+<tr><td align="center" style="padding:24px 12px 32px;">
+
+  <table class="email-container" role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;">
+
+    <!-- ══ LOGO ══ -->
+    <tr>
+      <td align="center" style="padding:16px 0 12px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding-right:8px;vertical-align:middle;font-size:22px;line-height:1;">🌱</td>
+            <td style="vertical-align:middle;">
+              <span style="font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:#3B2F2F;">GrowLog</span><span style="font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:400;font-style:italic;color:#4A6741;">&nbsp;AI</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ══ HERO ══ -->
+    <tr>
+      <td>
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#4A6741;border-radius:20px 20px 0 0;">
+          <tr>
+            <td class="hero-pad" align="center" style="padding:32px 20px 28px;">
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:#8FAF85;margin:0 0 14px 0;">Email change request</p>
+              <h1 class="h1" style="font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:700;color:#FAF4E6;line-height:1.25;margin:0 0 16px 0;">Confirm your<br><em style="font-style:italic;color:#D4E6CF;">new email address.</em></h1>
+              <p class="hero-sub" style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:15px;font-weight:300;color:rgba(242,232,201,0.85);line-height:1.65;margin:0;max-width:400px;">You requested a change to the email address on your GrowLog AI account. Click below to confirm.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <tr>
+      <td>
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#FAF4E6;">
+          <tr>
+            <td class="content-pad" style="padding:28px 20px 24px;">
+
+              <!-- Greeting -->
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:16px;color:#3B2F2F;line-height:1.65;margin:0 0 6px 0;">Hi {{ if .Data.first_name }}{{ .Data.first_name }}{{ else }}there{{ end }},</p>
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:16px;color:#3B2F2F;line-height:1.65;margin:0 0 24px 0;">You requested to change the email address on your GrowLog AI account. Click below to confirm the new address.</p>
+
+              <!-- Email change info box -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#F2E8C9;border-radius:14px;margin-bottom:28px;">
+                <tr>
+                  <td style="padding:18px 22px;">
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;color:#8FAF85;text-transform:uppercase;letter-spacing:0.15em;margin:0 0 10px 0;">Requested change</p>
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:14px;color:#7A5C44;margin:0 0 6px 0;">New address: <strong style="color:#3B2F2F;">{{ .NewEmail }}</strong></p>
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;color:#8FAF85;margin:0;">Your current address stays active until you confirm the new one.</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- ══ CTA BUTTON ══ -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="padding:4px 0 8px;">
+                <tr>
+                  <td align="center">
+                    <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email_change" class="confirm-btn"
+                       style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;color:#FAF4E6;text-decoration:none;display:block;padding:17px 24px;border-radius:50px;background-color:#4A6741;text-align:center;max-width:340px;margin:0 auto;box-sizing:border-box;">
+                      Confirm email change &nbsp;→
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;color:#8FAF85;text-align:center;margin:0 0 32px 0;">
+                This link expires in 24 hours.&nbsp;·&nbsp;Button not working?<br>
+                <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email_change" style="color:#7A5C44;text-decoration:underline;">Copy this link instead</a>
+              </p>
+
+              <!-- Divider -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td style="border-top:1px solid #E8D9A8;padding:0 0 24px 0;font-size:0;">&nbsp;</td></tr></table>
+
+              <!-- Security warning -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#FDF3E7;border-radius:14px;border-left:4px solid #D4822A;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:#3B2F2F;margin:0 0 4px 0;">Didn't request this change?</p>
+                    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:13px;color:#7A5C44;line-height:1.6;margin:0;">Your email has not been changed. <a href="mailto:support@growlogai.com" style="color:#D4822A;">Contact support</a> immediately if you didn't make this request.</p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ══ DIRT FOOTER ILLUSTRATION ══ -->
+    <tr>
+      <td style="padding:0;line-height:0;font-size:0;">
+        <svg width="600" height="160" viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;max-width:600px;" preserveAspectRatio="xMidYMid slice">
+          <rect x="0" y="50" width="600" height="110" fill="#5C3D1E"/>
+          <rect x="0" y="82" width="600" height="78" fill="#6B4A28"/>
+          <rect x="0" y="110" width="600" height="50" fill="#7A5432"/>
+          <rect x="0" y="138" width="600" height="22" fill="#4A2E14"/>
+          <path d="M0 50 Q30 42 60 48 Q90 54 120 46 Q150 38 180 50 Q210 58 240 45 Q270 36 300 48 Q330 56 360 44 Q390 36 420 50 Q450 58 480 46 Q510 38 540 50 Q570 56 600 48 L600 50 L0 50 Z" fill="#6B4A28"/>
+          <path d="M0 52 Q40 45 80 51 Q120 57 160 47 Q200 39 240 52 Q280 60 320 48 Q360 40 400 53 Q440 60 480 49 Q520 41 560 53 Q580 57 600 51 L600 54 L0 54 Z" fill="#5C3D1E" opacity="0.7"/>
+          <ellipse cx="45" cy="58" rx="8" ry="5" fill="#8B7355" opacity="0.7"/>
+          <ellipse cx="130" cy="62" rx="6" ry="4" fill="#7A6048" opacity="0.65"/>
+          <ellipse cx="220" cy="56" rx="9" ry="5.5" fill="#8B7050" opacity="0.6"/>
+          <ellipse cx="310" cy="64" rx="5" ry="3.5" fill="#7A6040" opacity="0.7"/>
+          <ellipse cx="390" cy="57" rx="7" ry="4.5" fill="#8B7050" opacity="0.6"/>
+          <ellipse cx="460" cy="61" rx="6" ry="4" fill="#7A6048" opacity="0.65"/>
+          <ellipse cx="540" cy="58" rx="8" ry="5" fill="#8B7355" opacity="0.6"/>
+          <circle cx="90" cy="70" r="3.5" fill="#8B7050" opacity="0.5"/>
+          <circle cx="175" cy="68" r="2.5" fill="#9A8060" opacity="0.45"/>
+          <circle cx="265" cy="73" r="3" fill="#8B7050" opacity="0.5"/>
+          <circle cx="345" cy="69" r="2.5" fill="#9A8060" opacity="0.5"/>
+          <circle cx="430" cy="72" r="3" fill="#8B7050" opacity="0.45"/>
+          <circle cx="508" cy="67" r="2.5" fill="#9A8060" opacity="0.5"/>
+          <path d="M160 92 Q168 86 180 90 Q192 96 202 90 Q212 85 220 89" stroke="#C1785A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+          <path d="M160 92 Q168 86 180 90 Q192 96 202 90 Q212 85 220 89" stroke="#D4907A" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>
+          <circle cx="158" cy="92" r="3" fill="#C1785A"/>
+          <path d="M110 52 Q108 64 105 76 Q102 88 108 100" stroke="#4A2E14" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.6"/>
+          <path d="M110 52 Q115 66 112 80" stroke="#4A2E14" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.5"/>
+          <path d="M300 52 Q297 66 294 80 Q291 94 296 106" stroke="#4A2E14" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.55"/>
+          <path d="M300 52 Q306 68 303 82" stroke="#4A2E14" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.5"/>
+          <path d="M490 52 Q488 65 485 78 Q482 90 488 102" stroke="#4A2E14" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.55"/>
+          <path d="M110 52 Q108 40 110 28 Q111 18 110 8" stroke="#4A6741" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M110 28 Q98 20 94 26 Q98 36 110 32 Z" fill="#6B9160"/>
+          <path d="M110 28 Q122 20 126 26 Q122 36 110 32 Z" fill="#8FAF85"/>
+          <path d="M110 8 Q106 0 109 -4 Q113 0 110 8 Z" fill="#4A6741" opacity="0.8"/>
+          <path d="M300 52 Q297 38 299 24 Q300 10 300 0" stroke="#4A6741" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+          <path d="M300 36 Q286 28 281 34 Q285 44 300 40 Z" fill="#4A6741" opacity="0.9"/>
+          <path d="M300 36 Q314 28 319 34 Q315 44 300 40 Z" fill="#6B9160" opacity="0.9"/>
+          <path d="M300 20 Q290 12 286 18 Q290 26 300 23 Z" fill="#6B9160"/>
+          <path d="M300 20 Q310 12 314 18 Q310 26 300 23 Z" fill="#8FAF85"/>
+          <path d="M490 52 Q488 40 490 28 Q491 16 490 6" stroke="#4A6741" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M490 30 Q478 23 474 29 Q478 38 490 34 Z" fill="#6B9160"/>
+          <path d="M490 30 Q502 23 506 29 Q502 38 490 34 Z" fill="#8FAF85"/>
+          <path d="M490 14 Q484 7 487 3 Q492 7 490 14 Z" fill="#4A6741" opacity="0.75"/>
+          <path d="M490 14 Q496 7 493 3 Q488 7 490 14 Z" fill="#6B9160" opacity="0.7"/>
+        </svg>
+      </td>
+    </tr>
+
+    <!-- ══ FOOTER TEXT ══ -->
+    <tr>
+      <td style="background-color:#4A2E14;padding:18px 20px 24px;" align="center">
+        <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;color:#C4A882;margin:0 0 6px 0;">
+          <a href="mailto:support@growlogai.com" style="color:#C4A882;">Get help</a>
+          &nbsp;·&nbsp;
+          <a href="#" style="color:#C4A882;">Privacy policy</a>
+          &nbsp;·&nbsp;
+          <a href="#" style="color:#C4A882;">Unsubscribe</a>
+        </p>
+        <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;color:#8B6B50;margin:0;">
+          &copy; 2026 GrowLog AI &nbsp;&middot;&nbsp; You requested this email change.
+        </p>
+      </td>
+    </tr>
+
+    <tr><td style="padding:20px 0;">&nbsp;</td></tr>
+
+  </table>
+
+</td></tr>
+</table>
+</body>
+</html>
