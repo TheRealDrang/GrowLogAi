@@ -17,7 +17,9 @@ create table if not exists gardens (
   usda_zone   text,
   latitude    numeric(9,6),
   longitude   numeric(9,6),
-  sheet_url   text,   -- user's Apps Script web app URL for logging
+  sheet_url       text,   -- user's Apps Script web app URL for logging
+  google_sheet_id     text,   -- Google Sheets file ID created automatically on garden setup
+  weather_logged_date date,   -- tracks last date weather was logged to avoid duplicate daily entries
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -117,6 +119,7 @@ create table if not exists session_logs (
   weather_summary text,
   sheet_posted    boolean not null default false,
   raw_json        jsonb,
+  full_response   text,
   created_at      timestamptz not null default now()
 );
 
@@ -152,4 +155,29 @@ create trigger gardens_updated_at
 
 create trigger crops_updated_at
   before update on crops
+  for each row execute function update_updated_at();
+
+-- ============================================================
+-- USER GOOGLE TOKENS
+-- ============================================================
+create table if not exists user_google_tokens (
+  user_id       uuid primary key references auth.users(id) on delete cascade,
+  refresh_token text not null,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+alter table user_google_tokens enable row level security;
+
+create policy "users can view own google token"
+  on user_google_tokens for select using (auth.uid() = user_id);
+
+create policy "users can insert own google token"
+  on user_google_tokens for insert with check (auth.uid() = user_id);
+
+create policy "users can update own google token"
+  on user_google_tokens for update using (auth.uid() = user_id);
+
+create trigger user_google_tokens_updated_at
+  before update on user_google_tokens
   for each row execute function update_updated_at();
