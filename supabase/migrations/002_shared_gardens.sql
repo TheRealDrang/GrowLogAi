@@ -70,14 +70,28 @@ create index if not exists garden_members_user_id_idx on garden_members(user_id)
 
 alter table garden_members enable row level security;
 
+-- Security-definer function avoids self-referential RLS recursion.
+-- Claude chose this approach because: a policy on garden_members that queries
+-- garden_members triggers infinite recursion in PostgreSQL and returns empty results.
+-- Running the check inside a security definer function bypasses RLS for the inner
+-- query only, breaking the cycle while still enforcing the same access rule.
+create or replace function user_is_garden_member(gid uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from garden_members
+    where garden_id = gid and user_id = auth.uid()
+  );
+$$;
+
 -- Anyone can see members of gardens they belong to
 create policy "members can view garden members"
   on garden_members for select using (
-    exists (
-      select 1 from garden_members gm
-      where gm.garden_id = garden_members.garden_id
-        and gm.user_id = auth.uid()
-    )
+    user_is_garden_member(garden_id)
   );
 
 -- Only owners can add members
