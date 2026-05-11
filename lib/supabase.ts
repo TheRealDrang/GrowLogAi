@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 // Server-side Supabase client — only for Server Components and Route Handlers
@@ -26,5 +27,15 @@ export async function createSupabaseServerClient() {
         },
       },
     }
+  )
+}
+
+// Admin client — bypasses RLS. Only use server-side for privileged reads (e.g. fetching another user's token).
+// Claude chose this approach because: RLS blocks members from reading the garden owner's google token,
+// but the chat route must log to the owner's sheet regardless of who sent the message.
+export function createSupabaseAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 }

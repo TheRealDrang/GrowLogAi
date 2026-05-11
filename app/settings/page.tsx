@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import BottomNav from '@/components/BottomNav'
 import DirtFooter from '@/components/DirtFooter'
+import GardenMembersSection from './GardenMembersSection'
 
 interface Garden {
   id: string
@@ -39,8 +40,16 @@ export default function SettingsPage() {
   const [isGoogleUser, setIsGoogleUser] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
-  const [confirmDelete, setConfirmDelete] = useState(false)
+  // deleteStep drives the multi-step delete/transfer flow
+  const [deleteStep, setDeleteStep] = useState<'idle' | 'choice' | 'transfer' | 'delete-all'>('idle')
+  const [otherMembers, setOtherMembers] = useState<Array<{ user_id: string; display_name: string | null; email: string | null }>>([])
+  const [transferTo, setTransferTo] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [transferring, setTransferring] = useState(false)
+  const [displayName, setDisplayName] = useState('')
+  const [displayNameInput, setDisplayNameInput] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileSaved, setProfileSaved] = useState(false)
 
   useEffect(() => {
     fetch('/api/gardens')
@@ -54,6 +63,14 @@ export default function SettingsPage() {
     fetch('/api/me/has-google-token')
       .then(r => r.json())
       .then(data => setIsGoogleUser(data.hasToken === true))
+
+    fetch('/api/me/profile')
+      .then(r => r.json())
+      .then(data => {
+        const name = data.display_name ?? ''
+        setDisplayName(name)
+        setDisplayNameInput(name)
+      })
   }, [])
 
   function selectGarden(g: Garden) {
@@ -73,7 +90,7 @@ export default function SettingsPage() {
     })
     setSaved(false)
     setError(null)
-    setConfirmDelete(false)
+    setDeleteStep('idle')
   }
 
   async function lookupLocation(value: string) {
@@ -127,6 +144,23 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 3000)
   }
 
+  async function handleSaveProfile() {
+    setSavingProfile(true)
+    setProfileSaved(false)
+    const res = await fetch('/api/me/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ display_name: displayNameInput }),
+    })
+    const data = await res.json()
+    setSavingProfile(false)
+    if (res.ok) {
+      setDisplayName(data.display_name)
+      setProfileSaved(true)
+      setTimeout(() => setProfileSaved(false), 3000)
+    }
+  }
+
   async function handleSignOut() {
     const supabase = createSupabaseBrowserClient()
     await supabase.auth.signOut()
@@ -162,10 +196,55 @@ export default function SettingsPage() {
 
     if (!res.ok) {
       setError('Could not delete garden — please try again.')
-      setConfirmDelete(false)
+      setDeleteStep('idle')
       return
     }
 
+    const remaining = gardens.filter(g => g.id !== selected.id)
+    setGardens(remaining)
+    if (remaining.length > 0) {
+      selectGarden(remaining[0])
+    } else {
+      setSelected(null)
+      router.push('/dashboard')
+    }
+  }
+
+  // Called when the user first clicks "Delete garden" — checks for other members first
+  async function handleClickDelete() {
+    if (!selected) return
+    const res = await fetch(`/api/gardens/${selected.id}/members`)
+    if (res.ok) {
+      const data = await res.json()
+      type MemberRow = { user_id: string; display_name: string | null; email: string | null; is_current_user: boolean }
+      const others: MemberRow[] = (data.members as MemberRow[]).filter(m => !m.is_current_user)
+      if (others.length > 0) {
+        setOtherMembers(others)
+        setTransferTo(others[0].user_id)
+        setDeleteStep('choice')
+      } else {
+        setDeleteStep('delete-all')
+      }
+    }
+  }
+
+  // Transfer ownership then remove this garden from the owner's local list
+  async function handleTransfer() {
+    if (!selected || !transferTo) return
+    setTransferring(true)
+    const res = await fetch(`/api/gardens/${selected.id}/transfer-ownership`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_owner_user_id: transferTo }),
+    })
+    setTransferring(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setError(d.error ?? 'Transfer failed — please try again.')
+      setDeleteStep('idle')
+      return
+    }
+    // Current user is no longer owner; remove garden from their list
     const remaining = gardens.filter(g => g.id !== selected.id)
     setGardens(remaining)
     if (remaining.length > 0) {
@@ -308,23 +387,99 @@ export default function SettingsPage() {
               </button>
 
               <div className="border-t border-sage/20 pt-5 mt-2">
-                {!confirmDelete ? (
+                {deleteStep === 'idle' && (
                   <button
                     type="button"
-                    onClick={() => setConfirmDelete(true)}
+                    onClick={handleClickDelete}
                     className="text-sm font-sans text-harvest hover:text-harvest/80 border border-harvest/20 hover:border-harvest/40 rounded-xl px-4 py-2.5 transition-colors"
                   >
                     Delete garden
                   </button>
-                ) : (
-                  <div className="bg-harvest/8 border border-harvest/20 rounded-xl px-4 py-4 space-y-3">
+                )}
+
+                {deleteStep === 'choice' && (
+                  <div className="bg-harvest/8 border border-harvest/20 rounded-xl px-4 py-4 space-y-4">
                     <p className="text-sm font-sans text-soil">
-                      Delete <strong>{selected.name}</strong>? This will permanently remove the garden and all its crops and chat history.
+                      <strong>{selected.name}</strong> has {otherMembers.length} other member{otherMembers.length !== 1 ? 's' : ''}. What would you like to do?
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDeleteStep('transfer')}
+                        className="text-sm font-sans text-soil border border-sage/30 hover:border-moss/40 rounded-xl px-4 py-2.5 text-left transition-colors"
+                      >
+                        Transfer ownership to another member
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteStep('delete-all')}
+                        className="text-sm font-sans text-harvest border border-harvest/20 hover:border-harvest/40 rounded-xl px-4 py-2.5 text-left transition-colors"
+                      >
+                        Delete for everyone
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteStep('idle')}
+                      className="text-xs font-sans text-bark/60 hover:text-bark"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
+                {deleteStep === 'transfer' && (
+                  <div className="bg-sage/8 border border-sage/20 rounded-xl px-4 py-4 space-y-4">
+                    <p className="text-sm font-sans text-soil font-medium">Transfer ownership</p>
+                    <div>
+                      <label className="label">Transfer to</label>
+                      <select
+                        value={transferTo}
+                        onChange={e => setTransferTo(e.target.value)}
+                        className="input"
+                      >
+                        {otherMembers.map(m => (
+                          <option key={m.user_id} value={m.user_id}>
+                            {m.display_name ?? m.email ?? 'Member'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className="text-xs text-bark/60 font-sans">
+                      You will become an editor. The selected member will become the new owner.
                     </p>
                     <div className="flex gap-3">
                       <button
                         type="button"
-                        onClick={() => setConfirmDelete(false)}
+                        onClick={() => setDeleteStep('choice')}
+                        className="btn-ghost text-sm flex-1"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleTransfer}
+                        disabled={transferring}
+                        className="text-sm font-sans text-parchment bg-moss hover:bg-moss/90 rounded-xl px-4 py-2.5 flex-1 disabled:opacity-50 transition-colors"
+                      >
+                        {transferring ? 'Transferring…' : 'Transfer & leave'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {deleteStep === 'delete-all' && (
+                  <div className="bg-harvest/8 border border-harvest/20 rounded-xl px-4 py-4 space-y-3">
+                    <p className="text-sm font-sans text-soil">
+                      Delete <strong>{selected.name}</strong>?{' '}
+                      {otherMembers.length > 0
+                        ? `This will permanently remove the garden and revoke access for all ${otherMembers.length} other member${otherMembers.length !== 1 ? 's' : ''}.`
+                        : 'This will permanently remove the garden and all its crops and chat history.'}
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setDeleteStep('idle')}
                         className="btn-ghost text-sm flex-1"
                       >
                         Cancel
@@ -345,9 +500,42 @@ export default function SettingsPage() {
           )}
         </section>
 
+        {/* Members */}
+        {selected && (
+          // key={selected.id} forces remount when the user switches gardens so data reloads
+          <GardenMembersSection
+            key={selected.id}
+            gardenId={selected.id}
+            googleSheetId={selected.google_sheet_id}
+          />
+        )}
+
         {/* Account */}
         <section className="card p-6">
-          <h2 className="font-serif text-xl text-soil mb-4">Account</h2>
+          <h2 className="font-serif text-xl text-soil mb-5">Account</h2>
+
+          <div className="mb-5">
+            <label className="label">Display name</label>
+            <div className="flex gap-2">
+              <input
+                value={displayNameInput}
+                onChange={e => setDisplayNameInput(e.target.value)}
+                className="input flex-1"
+                placeholder="Your name"
+              />
+              <button
+                onClick={handleSaveProfile}
+                disabled={savingProfile || displayNameInput.trim() === displayName}
+                className="btn-primary disabled:opacity-50"
+              >
+                {savingProfile ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+            {profileSaved && (
+              <p className="text-xs text-moss font-sans mt-1.5">✓ Display name updated</p>
+            )}
+          </div>
+
           <button
             onClick={handleSignOut}
             className="text-sm font-sans text-harvest hover:text-harvest/80 border border-harvest/20

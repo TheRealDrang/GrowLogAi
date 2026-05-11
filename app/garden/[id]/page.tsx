@@ -5,6 +5,7 @@ import CropCard from '@/components/CropCard'
 import NewCropModal from '@/components/NewCropModal'
 import BottomNav from '@/components/BottomNav'
 import DirtFooter from '@/components/DirtFooter'
+import TooltipTip from '@/components/TooltipTip'
 
 export default async function GardenPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -16,7 +17,6 @@ export default async function GardenPage({ params }: { params: Promise<{ id: str
     .from('gardens')
     .select('*')
     .eq('id', id)
-    .eq('user_id', user.id)
     .single()
 
   if (!garden) notFound()
@@ -25,7 +25,6 @@ export default async function GardenPage({ params }: { params: Promise<{ id: str
     .from('crops')
     .select('*')
     .eq('garden_id', id)
-    .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
   const cropCount = crops?.length ?? 0
@@ -86,6 +85,12 @@ export default async function GardenPage({ params }: { params: Promise<{ id: str
               Track your first crop to start a conversation with your garden advisor.
             </p>
             <NewCropModal gardenId={garden.id} />
+            <div className="mt-4">
+              <TooltipTip
+                tooltipId="create-crop"
+                message="Add your first crop. You can track its progress, chat with the AI, and log observations."
+              />
+            </div>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

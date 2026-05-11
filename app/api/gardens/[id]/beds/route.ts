@@ -16,7 +16,6 @@ export async function GET(
     .from('crops')
     .select('bed_location')
     .eq('garden_id', id)
-    .eq('user_id', user.id)
     .not('bed_location', 'is', null)
     .order('bed_location', { ascending: true })
 

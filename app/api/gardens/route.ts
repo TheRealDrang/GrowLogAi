@@ -14,7 +14,6 @@ export async function GET() {
   const { data, error } = await supabase
     .from('gardens')
     .select('*')
-    .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -71,6 +70,14 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: 'Something went wrong creating your garden — please try again.' }, { status: 500 })
+
+  // Claude chose this approach because: the gardens insert policy allows any authenticated user to create
+  // a garden, so the owner row must be added immediately after to establish membership.
+  await supabase.from('garden_members').insert({
+    garden_id: data.id,
+    user_id: user.id,
+    role: 'owner',
+  })
 
   return NextResponse.json(data, { status: 201 })
 }

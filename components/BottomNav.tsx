@@ -2,6 +2,17 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import TooltipTip from './TooltipTip'
+
+interface NavItem {
+  href: string
+  label: string
+  active: boolean
+  disabled: boolean
+  icon: React.ReactNode
+  tooltipId?: string
+  tooltipMessage?: string
+}
 
 interface Props {
   gardenId?: string
@@ -11,7 +22,7 @@ interface Props {
 export default function BottomNav({ gardenId, cropId }: Props) {
   const path = usePathname()
 
-  const items = [
+  const items: NavItem[] = [
     {
       href: '/dashboard',
       label: 'Gardens',
@@ -31,6 +42,8 @@ export default function BottomNav({ gardenId, cropId }: Props) {
       // Claude chose this approach because: no gardenId means there's no specific
       // crop list to navigate to — the button would just loop back to dashboard
       disabled: !gardenId,
+      tooltipId: 'navigate-crops',
+      tooltipMessage: 'Switch between crops to track each plant individually.',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6">
           <path d="M12 22V12" strokeLinecap="round"/>
@@ -56,6 +69,8 @@ export default function BottomNav({ gardenId, cropId }: Props) {
       label: 'Settings',
       active: path === '/settings',
       disabled: false,
+      tooltipId: 'navigate-settings',
+      tooltipMessage: 'Settings lets you manage your garden, members, and Google Sheets connection.',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6">
           <circle cx="12" cy="12" r="3" strokeLinecap="round"/>
@@ -69,7 +84,10 @@ export default function BottomNav({ gardenId, cropId }: Props) {
     <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-soil-deep safe-area-pb">
       <div className="flex items-stretch h-16">
         {items.map(item => {
-          const sharedClass = `flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[48px]`
+          // Claude chose this approach because: wrapping each item in a relative div lets
+          // TooltipTip placement="above" position itself above the nav bar without needing
+          // a portal — absolute children of a fixed element are still positioned relative to it.
+          const itemClass = `flex flex-col items-center justify-center gap-0.5 min-h-[48px] w-full`
           const content = (
             <>
               <span className={`transition-transform ${item.active ? 'scale-110' : ''}`}>
@@ -84,28 +102,35 @@ export default function BottomNav({ gardenId, cropId }: Props) {
             </>
           )
 
-          if (item.disabled) {
-            return (
-              <span
-                key={item.label}
-                className={`${sharedClass} text-parchment/20 cursor-default`}
-                aria-disabled="true"
-              >
-                {content}
-              </span>
-            )
-          }
-
-          return (
+          const inner = item.disabled ? (
+            <span
+              className={`${itemClass} text-parchment/20 cursor-default`}
+              aria-disabled="true"
+            >
+              {content}
+            </span>
+          ) : (
             <Link
-              key={item.label}
               href={item.href}
-              className={`${sharedClass} transition-colors ${
+              className={`${itemClass} transition-colors ${
                 item.active ? 'text-parchment' : 'text-parchment/40 hover:text-parchment/70'
               }`}
             >
               {content}
             </Link>
+          )
+
+          return (
+            <div key={item.label} className="flex-1 relative flex flex-col">
+              {item.tooltipId && (
+                <TooltipTip
+                  tooltipId={item.tooltipId}
+                  message={item.tooltipMessage!}
+                  placement="above"
+                />
+              )}
+              {inner}
+            </div>
           )
         })}
       </div>

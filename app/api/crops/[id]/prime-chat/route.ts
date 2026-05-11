@@ -14,12 +14,11 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Fetch crop and garden, verify ownership
+  // Fetch crop and garden — RLS verifies the user is a garden member
   const { data: crop } = await supabase
     .from('crops')
     .select('*, gardens(name, location, usda_zone)')
     .eq('id', id)
-    .eq('user_id', user.id)
     .single()
 
   if (!crop) return NextResponse.json({ error: 'Crop not found' }, { status: 404 })
@@ -64,7 +63,7 @@ Keep it friendly and concise. Do not add a JSON log block — this is a greeting
   // Store as the first assistant message in conversations
   await supabase.from('conversations').insert({
     crop_id: id,
-    user_id: user.id,
+    created_by: user.id,
     role: 'assistant',
     content: message,
   })

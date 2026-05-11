@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from '@/lib/supabase'
+import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 import { getOnboardingRedirect } from '@/lib/onboarding'
 import Link from 'next/link'
@@ -7,6 +7,8 @@ import SignOutButtonClient from '@/components/SignOutButton'
 import BottomNav from '@/components/BottomNav'
 import DailyWeatherTrigger from '@/components/DailyWeatherTrigger'
 import DirtFooter from '@/components/DirtFooter'
+import InviteBanner from './InviteBanner'
+import TooltipTip from '@/components/TooltipTip'
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient()
@@ -17,11 +19,43 @@ export default async function DashboardPage() {
   const onboardingPath = await getOnboardingRedirect(supabase, user)
   if (onboardingPath) redirect(onboardingPath)
 
+  // RLS now returns all gardens the user is a member of (own + shared)
   const { data: gardens } = await supabase
     .from('gardens')
     .select('*')
-    .eq('user_id', user.id)
     .order('created_at', { ascending: true })
+
+  // Fetch pending invites for this user's email using admin client (bypasses RLS)
+  // Claude chose this approach because: garden_invites RLS only allows owners to read;
+  // the invited user needs a server-side privileged read to show the dashboard banner
+  const adminSupabase = createSupabaseAdminClient()
+  const { data: pendingInvites } = user.email
+    ? await adminSupabase
+        .from('garden_invites')
+        .select('token, role, garden_id, invited_by, gardens(name)')
+        .eq('email', user.email.toLowerCase())
+        .is('accepted_at', null)
+        .gt('expires_at', new Date().toISOString())
+    : { data: [] }
+
+  // Fetch inviter display names for the banner
+  const inviterIds = [...new Set((pendingInvites ?? []).map(i => i.invited_by))]
+  const inviterMap: Record<string, string> = {}
+  if (inviterIds.length > 0) {
+    const { data: profiles } = await adminSupabase
+      .from('profiles')
+      .select('id, display_name')
+      .in('id', inviterIds)
+    ;(profiles ?? []).forEach(p => { inviterMap[p.id] = p.display_name ?? 'Someone' })
+  }
+
+  const invites = (pendingInvites ?? []).map(i => ({
+    token: i.token as string,
+    role: i.role as string,
+    gardenId: i.garden_id as string,
+    gardenName: (i.gardens as unknown as { name: string } | null)?.name ?? 'a garden',
+    inviterName: inviterMap[i.invited_by as string] ?? 'Someone',
+  }))
 
   return (
     <div className="min-h-screen bg-straw flex flex-col pb-24 md:pb-0">
@@ -46,6 +80,9 @@ export default async function DashboardPage() {
       </header>
 
       <main className="flex-1 max-w-4xl mx-auto px-5 py-8 w-full">
+        {/* Pending invite banners */}
+        {invites.length > 0 && <InviteBanner invites={invites} />}
+
         <div className="flex items-end justify-between mb-6">
           <div>
             <h1 className="font-serif text-3xl text-soil">My Gardens</h1>
@@ -68,9 +105,20 @@ export default async function DashboardPage() {
               Create your first garden to start tracking crops and chatting with your advisor.
             </p>
             <NewGardenModal />
+            <div className="mt-4">
+              <TooltipTip
+                tooltipId="create-garden"
+                message="Start by creating your first garden — give it a name and a location."
+              />
+            </div>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <>
+            <TooltipTip
+              tooltipId="navigate-gardens"
+              message="You can have multiple gardens. Each has its own crops and diary."
+            />
+            <div className="grid gap-4 sm:grid-cols-2 mt-4">
             {gardens.map((garden) => (
               <Link
                 key={garden.id}
@@ -94,7 +142,8 @@ export default async function DashboardPage() {
                 <p className="text-xs text-moss font-sans font-medium mt-4">Open garden →</p>
               </Link>
             ))}
-          </div>
+            </div>
+          </>
         )}
       </main>
 

@@ -2,11 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react'
 import ChatMessage from '@/components/ChatMessage'
+import TooltipTip from '@/components/TooltipTip'
 
 interface Message {
   role: 'user' | 'assistant'
   content: string
   imagePreview?: string
+  attributedTo?: string  // display name shown above user messages
 }
 
 interface AttachedImage {
@@ -32,6 +34,7 @@ interface SessionLog {
   ai_advice: string | null
   sheet_posted: boolean
   full_response: string | null
+  createdByName?: string  // display name of who logged this session
 }
 
 interface Props {
@@ -40,6 +43,7 @@ interface Props {
   sessionLogs: SessionLog[]
   cropName: string
   sowDate?: string | null
+  currentUserDisplayName?: string
 }
 
 function stripJsonBlock(text: string): string {
@@ -75,7 +79,7 @@ function getStarters(cropName: string, sowDate: string | null | undefined): stri
   ]
 }
 
-export default function CropChatClient({ cropId, initialHistory, sessionLogs, cropName, sowDate }: Props) {
+export default function CropChatClient({ cropId, initialHistory, sessionLogs, cropName, sowDate, currentUserDisplayName }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialHistory)
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -215,6 +219,7 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
       role: 'user',
       content: msg,
       imagePreview: imageToSend?.preview,
+      attributedTo: currentUserDisplayName,
     }])
     setStreaming(true)
     setStreamBuffer('')
@@ -305,11 +310,20 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
                   </button>
                 ))}
               </div>
+              <TooltipTip
+                tooltipId="submit-chat"
+                message="Describe what you're observing and tap Send. The AI will respond with advice."
+              />
             </div>
           )}
 
           {messages.map((msg, i) => (
-            <ChatMessage key={i} role={msg.role} content={msg.content} imagePreview={msg.imagePreview} />
+            <div key={i}>
+              {msg.role === 'user' && msg.attributedTo && (
+                <p className="text-[10px] text-bark/50 font-sans mb-1 text-right pr-1">{msg.attributedTo}</p>
+              )}
+              <ChatMessage role={msg.role} content={msg.content} imagePreview={msg.imagePreview} />
+            </div>
           ))}
 
           {/* Streaming response */}
@@ -400,57 +414,66 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
             />
 
             {/* Photo */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={streaming}
-              title="Attach a photo"
-              className={`flex items-center justify-center w-12 h-12 rounded-xl border transition-colors flex-shrink-0 disabled:opacity-40 ${
-                attachedImage
-                  ? 'bg-sage/40 border-sage/50 text-parchment'
-                  : 'bg-parchment/15 border-parchment/25 text-parchment hover:bg-parchment/25'
-              }`}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
-                <circle cx="12" cy="13" r="4"/>
-              </svg>
-            </button>
-
-            {/* Mic */}
-            <button
-              onClick={supportsVoice ? toggleListening : undefined}
-              disabled={streaming || !supportsVoice}
-              title={!supportsVoice ? 'Voice not supported in this browser' : isListening ? 'Stop recording' : 'Speak your message'}
-              className={`relative flex items-center justify-center w-12 h-12 rounded-xl border transition-colors flex-shrink-0 disabled:opacity-40 ${
-                isListening
-                  ? 'bg-harvest/30 border-harvest/50 text-harvest'
-                  : 'bg-parchment/15 border-parchment/25 text-parchment hover:bg-parchment/25'
-              }`}
-            >
-              {isListening && <span className="absolute inset-0 rounded-xl border-2 border-harvest/50 animate-ping" />}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-                <rect x="9" y="2" width="6" height="11" rx="3"/>
-                <path d="M5 10a7 7 0 0014 0" strokeLinecap="round"/>
-                <path d="M12 19v3M9 22h6" strokeLinecap="round"/>
-              </svg>
-            </button>
-
-            {/* Diary toggle */}
-            {hasLogs && (
+            <div className="relative flex-shrink-0">
+              <TooltipTip tooltipId="photo-input" message="Take or upload a photo and the AI will help you identify what it's seeing." placement="above" />
               <button
-                onClick={() => setLogsOpen(o => !o)}
-                title={logsOpen ? 'Close diary' : 'Open diary'}
-                className={`flex items-center justify-center w-12 h-12 rounded-xl border transition-colors flex-shrink-0 ${
-                  logsOpen
-                    ? 'bg-moss/40 border-moss/50 text-parchment'
+                onClick={() => fileInputRef.current?.click()}
+                disabled={streaming}
+                title="Attach a photo"
+                className={`flex items-center justify-center w-12 h-12 rounded-xl border transition-colors disabled:opacity-40 ${
+                  attachedImage
+                    ? 'bg-sage/40 border-sage/50 text-parchment'
                     : 'bg-parchment/15 border-parchment/25 text-parchment hover:bg-parchment/25'
                 }`}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-                  <path d="M4 19.5A2.5 2.5 0 016.5 17H20" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
                 </svg>
               </button>
+            </div>
+
+            {/* Mic */}
+            <div className="relative flex-shrink-0">
+              <TooltipTip tooltipId="voice-input" message="Tap the mic to speak your observation instead of typing." placement="above" />
+              <button
+                onClick={supportsVoice ? toggleListening : undefined}
+                disabled={streaming || !supportsVoice}
+                title={!supportsVoice ? 'Voice not supported in this browser' : isListening ? 'Stop recording' : 'Speak your message'}
+                className={`relative flex items-center justify-center w-12 h-12 rounded-xl border transition-colors disabled:opacity-40 ${
+                  isListening
+                    ? 'bg-harvest/30 border-harvest/50 text-harvest'
+                    : 'bg-parchment/15 border-parchment/25 text-parchment hover:bg-parchment/25'
+                }`}
+              >
+                {isListening && <span className="absolute inset-0 rounded-xl border-2 border-harvest/50 animate-ping" />}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
+                  <rect x="9" y="2" width="6" height="11" rx="3"/>
+                  <path d="M5 10a7 7 0 0014 0" strokeLinecap="round"/>
+                  <path d="M12 19v3M9 22h6" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Diary toggle */}
+            {hasLogs && (
+              <div className="relative flex-shrink-0">
+                <TooltipTip tooltipId="garden-diary" message="Your garden diary saves every session — searchable notes from every conversation." placement="above" />
+                <button
+                  onClick={() => setLogsOpen(o => !o)}
+                  title={logsOpen ? 'Close diary' : 'Open diary'}
+                  className={`flex items-center justify-center w-12 h-12 rounded-xl border transition-colors ${
+                    logsOpen
+                      ? 'bg-moss/40 border-moss/50 text-parchment'
+                      : 'bg-parchment/15 border-parchment/25 text-parchment hover:bg-parchment/25'
+                  }`}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
+                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
             )}
 
             {/* Send */}
@@ -584,6 +607,9 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
                     >
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className="font-mono text-xs text-bark">{log.log_date}</span>
+                        {log.createdByName && (
+                          <span className="text-[10px] text-bark/40 font-sans">{log.createdByName}</span>
+                        )}
                         {log.sheet_posted
                           ? <span className="text-[10px] text-moss font-sans">✓ Saved to sheet</span>
                           : <span className="text-[10px] text-harvest font-sans">Not saved to sheet</span>

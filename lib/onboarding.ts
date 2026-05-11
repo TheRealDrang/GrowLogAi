@@ -8,15 +8,30 @@ export async function getOnboardingRedirect(
   supabase: SupabaseClient,
   user: User
 ): Promise<string | null> {
+  // Check for a pending garden invite in user metadata (set by inviteUserByEmail).
+  // Invited new users should accept their invite before going through onboarding.
+  const inviteToken = user.user_metadata?.garden_invite_token
+  if (inviteToken) {
+    const { data: invite } = await supabase
+      .from('garden_invites')
+      .select('accepted_at')
+      .eq('token', inviteToken)
+      .single()
+    if (invite && !invite.accepted_at) {
+      return `/invites/${inviteToken}`
+    }
+  }
+
   const isGoogle = user.app_metadata?.provider === 'google'
 
-  // Fetch gardens and token presence in parallel
-  const [gardensResult, tokenResult] = await Promise.all([
+  // Check garden membership (any role) — replaces the old user_id filter on gardens.
+  // An invited user who joined someone else's garden also counts as "has a garden".
+  const [membershipsResult, tokenResult] = await Promise.all([
     supabase
-      .from('gardens')
-      .select('id')
+      .from('garden_members')
+      .select('garden_id, role')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: true }),
+      .order('joined_at', { ascending: true }),
     supabase
       .from('user_google_tokens')
       .select('user_id')
@@ -24,41 +39,49 @@ export async function getOnboardingRedirect(
       .single(),
   ])
 
-  const gardens = gardensResult.data ?? []
+  const memberships = membershipsResult.data ?? []
   const hasGoogleToken = !!tokenResult.data
 
+  // If the user is in any garden (own or shared), they've completed the garden step.
+  // Only check for a crop if they OWN a garden (invited-only members skip crop onboarding).
+  const ownedGarden = memberships.find(m => m.role === 'owner')
+
   if (isGoogle) {
-    // Google OAuth users always have a token — guide straight to garden setup
-    if (gardens.length === 0) return '/onboarding/welcome'
+    if (memberships.length === 0) return '/onboarding/welcome'
+
+    // Invited member with no owned garden — skip onboarding, go to dashboard
+    if (!ownedGarden) return null
 
     const cropsResult = await supabase
       .from('crops')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('created_by', user.id)
       .limit(1)
 
     const hasCrop = (cropsResult.data ?? []).length > 0
-    if (!hasCrop) return `/onboarding/crop?garden_id=${gardens[0].id}`
+    if (!hasCrop) return `/onboarding/crop?garden_id=${ownedGarden.garden_id}`
     return null
   }
 
   // Email/password users
   if (!hasGoogleToken) {
-    // No Google token yet — need to connect Sheets
-    if (gardens.length === 0) return '/onboarding/welcome'
+    if (memberships.length === 0) return '/onboarding/welcome'
     return '/onboarding/sheets'
   }
 
-  // Has token
-  if (gardens.length === 0) return '/onboarding/garden'
+  // Has Google token
+  if (memberships.length === 0) return '/onboarding/garden'
+
+  // Invited member with no owned garden — skip onboarding
+  if (!ownedGarden) return null
 
   const cropsResult = await supabase
     .from('crops')
     .select('id')
-    .eq('user_id', user.id)
+    .eq('created_by', user.id)
     .limit(1)
 
   const hasCrop = (cropsResult.data ?? []).length > 0
-  if (!hasCrop) return `/onboarding/crop?garden_id=${gardens[0].id}`
+  if (!hasCrop) return `/onboarding/crop?garden_id=${ownedGarden.garden_id}`
   return null
 }
