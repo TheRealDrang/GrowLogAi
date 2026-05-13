@@ -11,6 +11,15 @@ interface GeoState {
   message: string
 }
 
+interface ExistingGarden {
+  id: string
+  name: string
+  location: string | null
+  latitude: number | null
+  longitude: number | null
+  usda_zone: string | null
+}
+
 export default function NewGardenModal() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -19,6 +28,18 @@ export default function NewGardenModal() {
   const [geo, setGeo] = useState<GeoState>({ lat: null, lon: null, zone: null, status: 'idle', message: '' })
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [existingGardens, setExistingGardens] = useState<ExistingGarden[]>([])
+
+  // Fetch existing gardens when modal opens to offer location shortcuts
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/gardens')
+      .then(r => r.json())
+      .then((gardens: ExistingGarden[]) => {
+        setExistingGardens(gardens.filter(g => g.location))
+      })
+      .catch(() => {})
+  }, [open])
 
   // Auto-detect location 700ms after the user stops typing
   useEffect(() => {
@@ -75,11 +96,25 @@ export default function NewGardenModal() {
     router.refresh()
   }
 
+  function useExistingLocation(garden: ExistingGarden) {
+    setLocation(garden.location ?? '')
+    setGeo({
+      lat: garden.latitude,
+      lon: garden.longitude,
+      zone: garden.usda_zone,
+      status: garden.latitude ? 'found' : 'idle',
+      message: garden.usda_zone
+        ? `Zone ${garden.usda_zone} · ${garden.location} — location active`
+        : `${garden.location} — location active`,
+    })
+  }
+
   function handleClose() {
     setOpen(false)
     setName(''); setLocation('')
     setGeo({ lat: null, lon: null, zone: null, status: 'idle', message: '' })
     setError(null)
+    setExistingGardens([])
   }
 
   return (
@@ -111,6 +146,20 @@ export default function NewGardenModal() {
 
               <div>
                 <label className="label">Location</label>
+                {existingGardens.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {existingGardens.map(g => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => useExistingLocation(g)}
+                        className="text-xs font-sans px-3 py-1.5 rounded-full border border-sage/40 bg-sage/10 text-moss hover:bg-sage/20 transition-colors"
+                      >
+                        {g.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <input
                   value={location}
                   onChange={e => { setLocation(e.target.value); setGeo(g => ({ ...g, status: 'idle', message: '' })) }}
