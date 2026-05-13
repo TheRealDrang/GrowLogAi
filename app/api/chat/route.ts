@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
       })
 
       stream.on('error', (err) => {
+        console.error('[chat stream error]', err)
         controller.error(err)
       })
 
