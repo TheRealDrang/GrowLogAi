@@ -52,10 +52,14 @@ export async function getOnboardingRedirect(
     // Invited member with no owned garden — skip onboarding, go to dashboard
     if (!ownedGarden) return null
 
+    // Claude chose this approach because: filtering by created_by can fail when the
+    // session auth.uid() doesn't match stored UUIDs due to RLS evaluation order.
+    // Checking the owned garden for any crops is also more correct for shared gardens
+    // (an owner's garden is set up once it has crops, regardless of who created them).
     const cropsResult = await supabase
       .from('crops')
       .select('id')
-      .eq('created_by', user.id)
+      .eq('garden_id', ownedGarden.garden_id)
       .limit(1)
 
     const hasCrop = (cropsResult.data ?? []).length > 0
@@ -78,7 +82,7 @@ export async function getOnboardingRedirect(
   const cropsResult = await supabase
     .from('crops')
     .select('id')
-    .eq('created_by', user.id)
+    .eq('garden_id', ownedGarden.garden_id)
     .limit(1)
 
   const hasCrop = (cropsResult.data ?? []).length > 0
