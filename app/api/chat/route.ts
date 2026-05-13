@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // Body: { crop_id: string, message: string }
 // Returns: streaming text response
 export async function POST(request: NextRequest) {
+  try {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -122,6 +123,7 @@ export async function POST(request: NextRequest) {
       })
 
       stream.on('finalMessage', async () => {
+        try {
         // Extract the session log JSON from the tail of the response
         // Claude chose this approach because: controller.close() is called last so
         // Next.js 16 doesn't terminate the function before DB/sheet writes complete
@@ -260,6 +262,10 @@ export async function POST(request: NextRequest) {
         }
 
         controller.close()
+        } catch (finalErr) {
+          console.error('[chat finalMessage error]', finalErr)
+          controller.close()
+        }
       })
     },
   })
@@ -271,4 +277,8 @@ export async function POST(request: NextRequest) {
       'X-Accel-Buffering': 'no',
     },
   })
+  } catch (err) {
+    console.error('[/api/chat error]', err)
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+  }
 }
