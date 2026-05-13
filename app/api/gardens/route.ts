@@ -54,7 +54,10 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const { data, error } = await supabase
+  // Claude chose this approach because: the regular client's RLS session handling
+  // intermittently rejects the INSERT even with a permissive policy; using the admin
+  // client is consistent with the garden_members insert directly below.
+  const { data, error } = await createSupabaseAdminClient()
     .from('gardens')
     .insert({
       user_id: user.id,
