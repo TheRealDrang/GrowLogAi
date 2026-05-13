@@ -500,9 +500,8 @@ export default function SettingsPage() {
           )}
         </section>
 
-        {/* Members */}
-        {selected && (
-          // key={selected.id} forces remount when the user switches gardens so data reloads
+        {/* Members — only shown when NEXT_PUBLIC_SHARING_ENABLED=true (staging/preview only until QA complete) */}
+        {selected && process.env.NEXT_PUBLIC_SHARING_ENABLED === 'true' && (
           <GardenMembersSection
             key={selected.id}
             gardenId={selected.id}
