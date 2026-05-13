@@ -1,4 +1,4 @@
-// Google Sheets API helpers — used for Google OAuth users only.
+// Google Sheets and Drive API helpers — used for Google OAuth users only.
 // Email/password users continue to use the Apps Script approach.
 
 const HEADERS = ['Date', 'Crop', 'Variety', 'Bed', 'Observation', 'Action Taken', 'AI Advice', 'Weather', 'Full Response']
@@ -198,4 +198,30 @@ export async function appendToSheet(
   }
 
   return true
+}
+
+// Share the Google Sheet (via Drive API) with a member's email address
+// driveRole: 'reader' for view-only members, 'writer' for editors
+export async function shareSheetWithMember(
+  accessToken: string,
+  spreadsheetId: string,
+  email: string,
+  driveRole: 'reader' | 'writer'
+): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${spreadsheetId}/permissions`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ type: 'user', role: driveRole, emailAddress: email }),
+      }
+    )
+    return res.ok
+  } catch {
+    return false
+  }
 }

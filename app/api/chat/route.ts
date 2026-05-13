@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from '@/lib/supabase'
+import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase'
 import { anthropic, buildSystemPrompt, trimHistory } from '@/lib/anthropic'
 import { fetchWeather } from '@/lib/weather'
 import { extractSessionLog } from '@/lib/session-extractor'
@@ -21,12 +21,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'crop_id and message or image are required' }, { status: 400 })
   }
 
-  // Load crop + garden details (include google_sheet_id for Sheets API routing)
+  // Load crop + garden details — RLS verifies the user is a garden member
   const { data: crop, error: cropError } = await supabase
     .from('crops')
     .select('*, gardens(id, name, location, usda_zone, latitude, longitude, sheet_url, google_sheet_id)')
     .eq('id', crop_id)
-    .eq('user_id', user.id)
     .single()
 
   if (cropError || !crop) {
@@ -44,12 +43,11 @@ export async function POST(request: NextRequest) {
     google_sheet_id: string | null
   }
 
-  // Fetch conversation history (trim if > 20 turns)
+  // Fetch conversation history for all members of this crop's garden
   const { data: rawHistory } = await supabase
     .from('conversations')
     .select('role, content')
     .eq('crop_id', crop_id)
-    .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
   const history = trimHistory(rawHistory ?? [])
@@ -58,7 +56,7 @@ export async function POST(request: NextRequest) {
   const savedContent = image ? (message ? `[Photo] ${message}` : '[Photo attached]') : message
   await supabase.from('conversations').insert({
     crop_id,
-    user_id: user.id,
+    created_by: user.id,
     role: 'user',
     content: savedContent,
   })
@@ -132,7 +130,7 @@ export async function POST(request: NextRequest) {
         // Save assistant message (clean version — no json block)
         await supabase.from('conversations').insert({
           crop_id,
-          user_id: user.id,
+          created_by: user.id,
           role: 'assistant',
           content: cleanText,
         })
@@ -144,7 +142,7 @@ export async function POST(request: NextRequest) {
             .from('session_logs')
             .insert({
               crop_id,
-              user_id: user.id,
+              created_by: user.id,
               garden_id: garden.id,
               crop_name: crop.name,
               garden_name: garden.name,
@@ -178,11 +176,18 @@ export async function POST(request: NextRequest) {
           }
 
           if (garden.google_sheet_id) {
-            // Google OAuth user — write directly via Sheets API
-            const { data: tokenRow } = await supabase
+            // Sheet logging always uses the garden owner's credentials, regardless of which member chatted.
+            // Admin client is required because RLS blocks members from reading another user's token.
+            const { data: ownerRow } = await supabase
+              .from('garden_members')
+              .select('user_id')
+              .eq('garden_id', garden.id)
+              .eq('role', 'owner')
+              .single()
+            const { data: tokenRow } = await createSupabaseAdminClient()
               .from('user_google_tokens')
               .select('refresh_token')
-              .eq('user_id', user.id)
+              .eq('user_id', ownerRow?.user_id ?? user.id)
               .single()
 
             if (tokenRow?.refresh_token) {

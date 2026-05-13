@@ -14,12 +14,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'session_log_id is required' }, { status: 400 })
   }
 
-  // Load the session log + garden's sheet URL
+  // Load the session log + garden's sheet URL — RLS verifies garden membership
   const { data: log } = await supabase
     .from('session_logs')
     .select('*, gardens(sheet_url, name)')
     .eq('id', session_log_id)
-    .eq('user_id', user.id)
     .single()
 
   if (!log) return NextResponse.json({ error: 'Session log not found' }, { status: 404 })

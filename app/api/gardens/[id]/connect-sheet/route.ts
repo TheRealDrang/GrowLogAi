@@ -18,7 +18,6 @@ export async function POST(
     .from('gardens')
     .select('id, name')
     .eq('id', id)
-    .eq('user_id', user.id)
     .single()
 
   if (!garden) return NextResponse.json({ error: 'Garden not found' }, { status: 404 })
@@ -56,7 +55,6 @@ export async function POST(
     .from('gardens')
     .update({ google_sheet_id: sheetId })
     .eq('id', id)
-    .eq('user_id', user.id)
     .select()
     .single()
 

@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
     .from('crops')
     .select('*')
     .eq('garden_id', gardenId)
-    .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -36,24 +35,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'garden_id and name are required' }, { status: 400 })
   }
 
-  // Verify garden belongs to this user
-  const { data: garden } = await supabase
-    .from('gardens')
-    .select('id')
-    .eq('id', garden_id)
+  // Verify user has edit or owner access to this garden
+  const { data: membership } = await supabase
+    .from('garden_members')
+    .select('role')
+    .eq('garden_id', garden_id)
     .eq('user_id', user.id)
+    .in('role', ['owner', 'edit'])
     .single()
 
-  if (!garden) {
+  if (!membership) {
     return NextResponse.json({ error: 'Garden not found' }, { status: 404 })
   }
 
-  // Enforce 20-crop limit
+  // Enforce 20-crop limit across all members of the garden
   const { count } = await supabase
     .from('crops')
     .select('id', { count: 'exact', head: true })
     .eq('garden_id', garden_id)
-    .eq('user_id', user.id)
 
   if ((count ?? 0) >= MAX_CROPS_PER_GARDEN) {
     return NextResponse.json(
@@ -66,7 +65,7 @@ export async function POST(request: NextRequest) {
     .from('crops')
     .insert({
       garden_id,
-      user_id: user.id,
+      created_by: user.id,
       name: name.trim(),
       variety: variety?.trim() || null,
       bed_location: bed_location?.trim() || null,

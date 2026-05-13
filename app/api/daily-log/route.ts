@@ -13,11 +13,23 @@ export async function POST() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  // Get all gardens with a Google Sheet linked, coordinates available, and not yet logged today
+  // Only log to gardens where this user is the owner — they hold the Google credentials for the sheet.
+  // Members of shared gardens don't log weather; the owner's session handles it.
+  const { data: ownerMemberships } = await supabase
+    .from('garden_members')
+    .select('garden_id')
+    .eq('user_id', user.id)
+    .eq('role', 'owner')
+
+  const ownedIds = (ownerMemberships ?? []).map(r => r.garden_id)
+  if (ownedIds.length === 0) {
+    return NextResponse.json({ logged: 0 })
+  }
+
   const { data: gardens } = await supabase
     .from('gardens')
     .select('id, name, location, usda_zone, latitude, longitude, google_sheet_id, weather_logged_date')
-    .eq('user_id', user.id)
+    .in('id', ownedIds)
     .not('google_sheet_id', 'is', null)
     .not('latitude', 'is', null)
     .not('longitude', 'is', null)

@@ -14,25 +14,37 @@ export default async function CropPage({ params }: { params: Promise<{ id: strin
     .from('crops')
     .select('*, gardens(id, name, location, usda_zone)')
     .eq('id', id)
-    .eq('user_id', user.id)
     .single()
 
   if (!crop) notFound()
 
   const { data: history } = await supabase
     .from('conversations')
-    .select('role, content, created_at')
+    .select('role, content, created_at, created_by')
     .eq('crop_id', id)
-    .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
   const { data: sessionLogs } = await supabase
     .from('session_logs')
-    .select('id, log_date, observation, ai_advice, sheet_posted, full_response')
+    .select('id, log_date, observation, ai_advice, sheet_posted, full_response, created_by')
     .eq('crop_id', id)
-    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(10)
+
+  // Collect all user IDs that appear in this crop's history and logs, then fetch display names
+  const memberIds = new Set<string>([user.id])
+  ;(history ?? []).forEach(m => { if (m.created_by) memberIds.add(m.created_by) })
+  ;(sessionLogs ?? []).forEach(l => { if (l.created_by) memberIds.add(l.created_by) })
+
+  const { data: profileRows } = await supabase
+    .from('profiles')
+    .select('id, display_name')
+    .in('id', [...memberIds])
+
+  const profileMap: Record<string, string> = {}
+  ;(profileRows ?? []).forEach(p => { profileMap[p.id] = p.display_name ?? 'Unknown' })
+
+  const currentUserDisplayName = profileMap[user.id]
 
   const garden = crop.gardens as { id: string; name: string; location: string | null; usda_zone: string | null }
 
@@ -75,10 +87,18 @@ export default async function CropPage({ params }: { params: Promise<{ id: strin
       {/* Chat body — scrolls independently */}
       <CropChatClient
         cropId={id}
-        initialHistory={(history ?? []).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))}
-        sessionLogs={sessionLogs ?? []}
+        initialHistory={(history ?? []).map(m => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          attributedTo: m.role === 'user' && m.created_by ? profileMap[m.created_by] : undefined,
+        }))}
+        sessionLogs={(sessionLogs ?? []).map(l => ({
+          ...l,
+          createdByName: l.created_by ? profileMap[l.created_by] : undefined,
+        }))}
         cropName={crop.name}
         sowDate={crop.sow_date}
+        currentUserDisplayName={currentUserDisplayName}
       />
 
       {/* No BottomNav on chat page — input bar owns the bottom */}

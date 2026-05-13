@@ -15,7 +15,6 @@ export async function GET(
     .from('crops')
     .select('*, gardens(name, location, usda_zone, latitude, longitude, sheet_url)')
     .eq('id', id)
-    .eq('user_id', user.id)
     .single()
 
   if (error) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -43,7 +42,6 @@ export async function PUT(
     .from('crops')
     .update(updates)
     .eq('id', id)
-    .eq('user_id', user.id)
     .select()
     .single()
 
@@ -65,7 +63,6 @@ export async function DELETE(
     .from('crops')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: 'Something went wrong — please try again.' }, { status: 500 })
   return NextResponse.json({ ok: true })
