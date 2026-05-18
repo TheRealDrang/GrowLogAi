@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from '@/lib/supabase'
+import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/gardens/[id]
@@ -31,6 +31,19 @@ export async function PUT(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // Claude chose this approach because: the gardens UPDATE RLS policy checks garden_members
+  // via a subquery, which silently returns 0 rows (same pattern as member management routes).
+  // Verify ownership in code, then write via admin client.
+  const { data: membership } = await supabase
+    .from('garden_members')
+    .select('role')
+    .eq('garden_id', id)
+    .eq('user_id', user.id)
+    .eq('role', 'owner')
+    .single()
+
+  if (!membership) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
   const body = await request.json()
   const allowed = ['name', 'location', 'usda_zone', 'latitude', 'longitude', 'sheet_url']
   const updates: Record<string, unknown> = {}
@@ -38,7 +51,7 @@ export async function PUT(
     if (key in body) updates[key] = body[key]
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await createSupabaseAdminClient()
     .from('gardens')
     .update(updates)
     .eq('id', id)
@@ -59,7 +72,18 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { error } = await supabase
+  // Claude chose this approach because: same RLS subquery issue as PUT above.
+  const { data: membership } = await supabase
+    .from('garden_members')
+    .select('role')
+    .eq('garden_id', id)
+    .eq('user_id', user.id)
+    .eq('role', 'owner')
+    .single()
+
+  if (!membership) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const { error } = await createSupabaseAdminClient()
     .from('gardens')
     .delete()
     .eq('id', id)
