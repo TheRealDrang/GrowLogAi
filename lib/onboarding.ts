@@ -22,6 +22,24 @@ export async function getOnboardingRedirect(
     }
   }
 
+  // Claude chose this approach because: users who sign up independently (not via invite link)
+  // won't have garden_invite_token in their metadata, but may still have a pending invite
+  // addressed to their email. The RLS policy "invited users can view own pending invites"
+  // allows this query to work with the regular client.
+  if (!inviteToken && user.email) {
+    const { data: pendingInvite } = await supabase
+      .from('garden_invites')
+      .select('token')
+      .eq('email', user.email)
+      .is('accepted_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .limit(1)
+      .maybeSingle()
+    if (pendingInvite) {
+      return `/invites/${pendingInvite.token}`
+    }
+  }
+
   const isGoogle = user.app_metadata?.provider === 'google'
 
   // Check garden membership (any role) — replaces the old user_id filter on gardens.
