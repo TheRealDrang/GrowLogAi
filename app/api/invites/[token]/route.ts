@@ -54,8 +54,35 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // RLS "owners can delete invites" policy enforces ownership — no extra check needed
-  const { error } = await supabase
+  const adminSupabase = createSupabaseAdminClient()
+
+  // Claude chose this approach because: the garden_invites DELETE RLS policy checks
+  // garden_members via a subquery, but that subquery silently returns 0 rows due to
+  // the same RLS scoping issue seen elsewhere — so we use the admin client for the
+  // actual delete and verify ownership explicitly in code first.
+
+  // Find the invite to get its garden_id
+  const { data: invite } = await adminSupabase
+    .from('garden_invites')
+    .select('garden_id')
+    .eq('token', token)
+    .single()
+
+  if (!invite) return NextResponse.json({ error: 'Invite not found' }, { status: 404 })
+
+  // Verify current user is an owner of that garden (regular client — sees their own row correctly)
+  const { data: myMembership } = await supabase
+    .from('garden_members')
+    .select('role')
+    .eq('garden_id', invite.garden_id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!myMembership || myMembership.role !== 'owner') {
+    return NextResponse.json({ error: 'Only garden owners can cancel invites' }, { status: 403 })
+  }
+
+  const { error } = await adminSupabase
     .from('garden_invites')
     .delete()
     .eq('token', token)
