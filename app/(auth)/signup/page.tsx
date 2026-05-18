@@ -74,8 +74,7 @@ export default function SignupPage() {
       } else if (msg.includes('invalid') && msg.includes('email')) {
         setError('That doesn\'t look like a valid email address.')
       } else {
-        // TODO: revert — temporary diagnostic, remove before launch
-      setError(`Debug: ${error.message}`)
+        setError('Something went wrong creating your account — please try again.')
       }
       setLoading(false)
       return

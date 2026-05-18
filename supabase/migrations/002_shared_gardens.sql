@@ -22,8 +22,8 @@ create policy "users can view any profile"
 create policy "users can update own profile"
   on profiles for update using (auth.uid() = id);
 
-create policy "users can insert own profile"
-  on profiles for insert with check (auth.uid() = id);
+-- Note: no INSERT policy — profiles are only created by the handle_new_user() trigger.
+-- auth.uid() is NULL inside trigger functions so an INSERT RLS policy would block signups.
 
 -- Auto-create profile on new user signup
 create or replace function handle_new_user()
