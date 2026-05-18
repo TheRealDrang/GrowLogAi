@@ -70,6 +70,8 @@ export async function getOnboardingRedirect(
   // Email/password users
   if (!hasGoogleToken) {
     if (memberships.length === 0) return '/onboarding/welcome'
+    // Invited member with no owned garden — skip Google Sheets step, go to dashboard
+    if (!ownedGarden) return null
     return '/onboarding/sheets'
   }
 
