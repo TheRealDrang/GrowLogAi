@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js'
+import { createSupabaseAdminClient } from '@/lib/supabase'
 
 /**
  * Returns the next onboarding path for a user, or null if setup is complete.
@@ -23,11 +24,11 @@ export async function getOnboardingRedirect(
   }
 
   // Claude chose this approach because: users who sign up independently (not via invite link)
-  // won't have garden_invite_token in their metadata, but may still have a pending invite
-  // addressed to their email. The RLS policy "invited users can view own pending invites"
-  // allows this query to work with the regular client.
+  // won't have garden_invite_token in their metadata, but may still have a pending invite.
+  // Admin client is required — auth.uid() doesn't resolve reliably in server-side RLS
+  // contexts (same pattern as garden_members lookups elsewhere in the codebase).
   if (!inviteToken && user.email) {
-    const { data: pendingInvite } = await supabase
+    const { data: pendingInvite } = await createSupabaseAdminClient()
       .from('garden_invites')
       .select('token')
       .eq('email', user.email)
