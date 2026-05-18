@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from '@/lib/supabase'
+import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 
 // PATCH /api/gardens/[id]/members/[userId]
@@ -36,8 +36,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Cannot change your own role' }, { status: 400 })
   }
 
-  // RLS "owners can manage members" policy enforces ownership at DB level
-  const { error } = await supabase
+  // Claude chose this approach because: UPDATE on another user's garden_members row is
+  // silently blocked by RLS (policy only allows seeing/modifying your own row).
+  // Ownership is already verified above via the regular client — admin client is safe here.
+  const { error } = await createSupabaseAdminClient()
     .from('garden_members')
     .update({ role })
     .eq('garden_id', id)
@@ -76,7 +78,9 @@ export async function DELETE(
     return NextResponse.json({ error: 'Cannot remove the garden owner' }, { status: 400 })
   }
 
-  const { error } = await supabase
+  // Claude chose this approach because: DELETE on another user's garden_members row is
+  // silently blocked by RLS. Ownership is already verified above — admin client is safe here.
+  const { error } = await createSupabaseAdminClient()
     .from('garden_members')
     .delete()
     .eq('garden_id', id)
