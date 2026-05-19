@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from '@/lib/supabase'
+import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
@@ -6,6 +6,22 @@ export default async function WelcomePage() {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Check for a pending invite by email — handles the case where a removed member
+  // is re-invited while already logged in (getOnboardingRedirect only runs at login).
+  // Claude chose this approach because: admin client is required to query garden_invites
+  // by email without hitting RLS (same pattern as onboarding.ts).
+  if (user.email) {
+    const { data: pendingInvite } = await createSupabaseAdminClient()
+      .from('garden_invites')
+      .select('token')
+      .eq('email', user.email)
+      .is('accepted_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .limit(1)
+      .maybeSingle()
+    if (pendingInvite) redirect(`/invites/${pendingInvite.token}`)
+  }
 
   const firstName = user.user_metadata?.first_name ?? 'there'
 
