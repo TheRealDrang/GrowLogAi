@@ -22,12 +22,14 @@ create policy "users can view any profile"
 create policy "users can update own profile"
   on profiles for update using (auth.uid() = id);
 
-create policy "users can insert own profile"
-  on profiles for insert with check (auth.uid() = id);
+-- Note: no INSERT policy — profiles are only created by the handle_new_user() trigger.
+-- auth.uid() is NULL inside trigger functions so an INSERT RLS policy would block signups.
 
 -- Auto-create profile on new user signup
-create or replace function handle_new_user()
-returns trigger language plpgsql security definer as $$
+-- SET search_path = public is required so GoTrue's DB connection can find the profiles table.
+-- Without it, SECURITY DEFINER functions inherit GoTrue's search_path (which excludes public).
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
 begin
   insert into profiles (id, display_name, avatar_url)
   values (

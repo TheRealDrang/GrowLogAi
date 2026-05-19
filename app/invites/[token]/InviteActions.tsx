@@ -21,7 +21,15 @@ export default function InviteActions({ token, gardenId, alreadyMember }: Props)
         <p className="text-sm font-sans text-moss bg-moss/8 border border-moss/20 rounded-xl px-4 py-3">
           You&apos;re already a member of this garden.
         </p>
-        <button onClick={() => router.push(`/garden/${gardenId}`)} className="btn-primary w-full">
+        <button
+          onClick={() => {
+            // Claude chose this approach because: without calling accept, accepted_at stays null
+            // and getOnboardingRedirect keeps redirecting back here on every dashboard visit.
+            fetch(`/api/invites/${token}/accept`, { method: 'POST' })
+            router.push(`/garden/${gardenId}`)
+          }}
+          className="btn-primary w-full"
+        >
           Open garden →
         </button>
       </div>

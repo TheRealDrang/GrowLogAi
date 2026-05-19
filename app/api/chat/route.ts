@@ -181,7 +181,10 @@ export async function POST(request: NextRequest) {
           if (garden.google_sheet_id) {
             // Sheet logging always uses the garden owner's credentials, regardless of which member chatted.
             // Admin client is required because RLS blocks members from reading another user's token.
-            const { data: ownerRow } = await supabase
+            // Claude chose this approach because: the garden_members SELECT policy
+            // only returns the current user's own row, so an invited member can't
+            // see the owner row via the regular client — admin client bypasses RLS.
+            const { data: ownerRow } = await createSupabaseAdminClient()
               .from('garden_members')
               .select('user_id')
               .eq('garden_id', garden.id)

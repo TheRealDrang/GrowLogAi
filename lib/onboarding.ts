@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js'
+import { createSupabaseAdminClient } from '@/lib/supabase'
 
 /**
  * Returns the next onboarding path for a user, or null if setup is complete.
@@ -19,6 +20,24 @@ export async function getOnboardingRedirect(
       .single()
     if (invite && !invite.accepted_at) {
       return `/invites/${inviteToken}`
+    }
+  }
+
+  // Claude chose this approach because: users who sign up independently (not via invite link)
+  // won't have garden_invite_token in their metadata, but may still have a pending invite.
+  // Admin client is required — auth.uid() doesn't resolve reliably in server-side RLS
+  // contexts (same pattern as garden_members lookups elsewhere in the codebase).
+  if (!inviteToken && user.email) {
+    const { data: pendingInvite } = await createSupabaseAdminClient()
+      .from('garden_invites')
+      .select('token')
+      .eq('email', user.email)
+      .is('accepted_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .limit(1)
+      .maybeSingle()
+    if (pendingInvite) {
+      return `/invites/${pendingInvite.token}`
     }
   }
 
@@ -70,6 +89,19 @@ export async function getOnboardingRedirect(
   // Email/password users
   if (!hasGoogleToken) {
     if (memberships.length === 0) return '/onboarding/welcome'
+    // Invited member with no owned garden — skip Google Sheets step, go to dashboard
+    if (!ownedGarden) return null
+
+    // Claude chose this approach because: if the user skipped Sheets and already has crops,
+    // they've completed onboarding — don't loop them back to the Sheets step on every login.
+    const cropsResult = await supabase
+      .from('crops')
+      .select('id')
+      .eq('garden_id', ownedGarden.garden_id)
+      .limit(1)
+    const hasCrop = (cropsResult.data ?? []).length > 0
+    if (hasCrop) return null
+
     return '/onboarding/sheets'
   }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import StepIndicator from '@/components/StepIndicator'
 
@@ -89,6 +90,12 @@ export default function SheetsPage() {
           {loading ? 'Connecting…' : 'Connect Google Sheets →'}
         </button>
       )}
+
+      <p className="text-center text-xs text-bark/50 font-sans mt-4">
+        <Link href="/onboarding/garden" className="hover:text-bark transition-colors">
+          Skip for now — set up my garden without Sheets
+        </Link>
+      </p>
     </div>
   )
 }

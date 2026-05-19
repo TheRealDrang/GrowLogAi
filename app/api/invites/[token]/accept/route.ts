@@ -50,6 +50,16 @@ export async function POST(
     .single()
 
   if (existing) {
+    // Mark invite accepted to clear it from pending state — if we don't, accepted_at stays null
+    // and getOnboardingRedirect keeps finding and redirecting to this invite on every dashboard load.
+    // Claude chose this approach because: idempotent update is safe; .is('accepted_at', null) prevents
+    // double-writing if already marked.
+    await adminSupabase
+      .from('garden_invites')
+      .update({ accepted_at: new Date().toISOString() })
+      .eq('token', token)
+      .is('accepted_at', null)
+
     return NextResponse.json(
       { garden_id: invite.garden_id, already_member: true },
       { status: 200 }

@@ -274,7 +274,8 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
 
   return (
     // This div fills remaining height — chat scrolls inside, input stays at bottom
-    <div ref={containerRef} className="flex flex-1 overflow-hidden">
+    // Claude chose this approach because: absolute positioning on the overlay requires the parent to be relative
+    <div ref={containerRef} className="relative flex flex-1 overflow-hidden">
       {/* Chat area */}
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Scrollable messages */}
@@ -541,6 +542,124 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
           onMouseDown={handleDividerMouseDown}
           className="hidden lg:flex w-1.5 flex-shrink-0 bg-sage/20 hover:bg-sage/50 cursor-col-resize transition-colors"
         />
+      )}
+
+      {/* Session log overlay — mobile only (below lg), slides in from right and covers chat */}
+      {logsOpen && hasLogs && (
+        // Claude chose this approach because: absolute inset-0 fills the container; backdrop on the left lets
+        // users tap outside to close; z-40 keeps it below the fixed input bar (z-50) so input stays usable
+        <div className="lg:hidden absolute inset-0 z-40 flex">
+          {/* Tap-to-close backdrop */}
+          <div className="flex-1 bg-black/30" onClick={() => setLogsOpen(false)} />
+          {/* Diary panel — 85% width, slides in from right */}
+          <aside className="w-[85%] max-w-xs flex flex-col bg-parchment border-l border-sage/30 overflow-hidden">
+            <div className="px-4 py-3 border-b border-sage/20 flex items-center justify-between">
+              <div>
+                <h2 className="font-serif text-base text-soil">Diary</h2>
+                <p className="text-xs text-bark font-sans mt-0.5">Past sessions</p>
+              </div>
+              <button
+                onClick={() => setLogsOpen(false)}
+                className="text-bark/40 hover:text-soil transition-colors"
+                title="Close diary"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                  <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            <div className="px-3 py-2 border-b border-sage/10">
+              <div className="relative">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                     className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-bark/40 pointer-events-none">
+                  <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" strokeLinecap="round"/>
+                </svg>
+                <input
+                  type="text"
+                  value={logSearch}
+                  onChange={e => setLogSearch(e.target.value)}
+                  placeholder="Search entries…"
+                  className="w-full bg-straw border border-sage/30 rounded-lg pl-7 pr-3 py-1.5 text-xs font-sans
+                             text-soil placeholder:text-bark/40 focus:outline-none focus:ring-1 focus:ring-moss/30
+                             focus:border-moss transition-colors"
+                />
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto divide-y divide-sage/10">
+              {(() => {
+                const q = logSearch.toLowerCase().trim()
+                const filtered = q
+                  ? sessionLogs.filter(log =>
+                      log.observation?.toLowerCase().includes(q) ||
+                      log.ai_advice?.toLowerCase().includes(q) ||
+                      log.full_response?.toLowerCase().includes(q) ||
+                      log.log_date.includes(q)
+                    )
+                  : sessionLogs
+                if (filtered.length === 0) return (
+                  <p className="px-4 py-6 text-xs text-bark/50 font-sans text-center">No entries match your search.</p>
+                )
+                return filtered.map((log) => {
+                  const isExpanded = expandedLogId === log.id
+                  return (
+                    <div key={log.id} className="border-b border-sage/10 last:border-0">
+                      <button
+                        onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                        className="w-full text-left px-4 py-3 hover:bg-straw/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="font-mono text-xs text-bark">{log.log_date}</span>
+                          {log.createdByName && (
+                            <span className="text-[10px] text-bark/40 font-sans">{log.createdByName}</span>
+                          )}
+                          {log.sheet_posted
+                            ? <span className="text-[10px] text-moss font-sans">✓ Saved to sheet</span>
+                            : <span className="text-[10px] text-harvest font-sans">Not saved to sheet</span>
+                          }
+                          <span className="ml-auto text-bark/30 text-[10px]">{isExpanded ? '▲' : '▼'}</span>
+                        </div>
+                        {log.observation && (
+                          <p className={`text-xs text-soil font-sans leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
+                            {log.observation}
+                          </p>
+                        )}
+                      </button>
+                      {isExpanded && (
+                        <div className="px-4 pb-4 space-y-3">
+                          {log.full_response ? (
+                            <p className="text-xs text-soil font-sans leading-relaxed whitespace-pre-wrap">
+                              {log.full_response}
+                            </p>
+                          ) : (
+                            <div className="space-y-1.5">
+                              {log.observation && (
+                                <p className="text-xs text-soil font-sans leading-relaxed"><strong>Observed:</strong> {log.observation}</p>
+                              )}
+                              {log.ai_advice && (
+                                <p className="text-xs text-moss font-sans leading-relaxed italic">{log.ai_advice}</p>
+                              )}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => {
+                              setInput(`Following up on my ${log.log_date} diary entry — `)
+                              setLogsOpen(false)
+                              setTimeout(() => textareaRef.current?.focus(), 50)
+                            }}
+                            className="w-full text-left text-xs font-sans font-medium text-moss border border-moss/30
+                                       bg-moss/5 hover:bg-moss/10 rounded-lg px-3 py-2 transition-colors"
+                          >
+                            Ask a follow-up →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+          </aside>
+        </div>
       )}
 
       {/* Session log sidebar — desktop only, collapsible */}
