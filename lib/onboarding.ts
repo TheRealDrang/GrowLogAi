@@ -91,6 +91,17 @@ export async function getOnboardingRedirect(
     if (memberships.length === 0) return '/onboarding/welcome'
     // Invited member with no owned garden — skip Google Sheets step, go to dashboard
     if (!ownedGarden) return null
+
+    // Claude chose this approach because: if the user skipped Sheets and already has crops,
+    // they've completed onboarding — don't loop them back to the Sheets step on every login.
+    const cropsResult = await supabase
+      .from('crops')
+      .select('id')
+      .eq('garden_id', ownedGarden.garden_id)
+      .limit(1)
+    const hasCrop = (cropsResult.data ?? []).length > 0
+    if (hasCrop) return null
+
     return '/onboarding/sheets'
   }
 
