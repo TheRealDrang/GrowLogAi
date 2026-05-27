@@ -82,6 +82,14 @@ export default async function DashboardPage() {
             <span className="font-serif text-lg text-parchment">GrowLog AI</span>
           </div>
           <div className="flex items-center gap-4">
+            <a
+              href="https://www.notion.so/GrowLog-AI-Knowledge-Base-36dcc739f5188098b8fcfe6b47be706b"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-sans text-parchment/70 hover:text-parchment transition-colors hidden sm:inline"
+            >
+              Help
+            </a>
             <Link href="/settings" className="text-sm font-sans text-parchment/70 hover:text-parchment transition-colors hidden sm:inline">
               Settings
             </Link>
