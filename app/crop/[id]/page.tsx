@@ -4,8 +4,15 @@ import Link from 'next/link'
 import CropChatClient from './CropChatClient'
 import EditCropModal from '@/components/EditCropModal'
 
-export default async function CropPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CropPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ alert?: string }>
+}) {
   const { id } = await params
+  const resolvedSearch = await searchParams
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -45,6 +52,18 @@ export default async function CropPage({ params }: { params: Promise<{ id: strin
   ;(profileRows ?? []).forEach(p => { profileMap[p.id] = p.display_name ?? 'Unknown' })
 
   const currentUserDisplayName = profileMap[user.id]
+
+  // Read optional ?alert=[id] param — used when navigating from an Advisor Note
+  const alertId = resolvedSearch?.alert ?? null
+  let alertContext: string | null = null
+  if (alertId) {
+    const { data: alertRow } = await supabase
+      .from('garden_alerts')
+      .select('chat_context')
+      .eq('id', alertId)
+      .single()
+    alertContext = alertRow?.chat_context ?? null
+  }
 
   const garden = crop.gardens as { id: string; name: string; location: string | null; usda_zone: string | null }
 
@@ -99,6 +118,7 @@ export default async function CropPage({ params }: { params: Promise<{ id: strin
         cropName={crop.name}
         sowDate={crop.sow_date}
         currentUserDisplayName={currentUserDisplayName}
+        alertContext={alertContext}
       />
 
       {/* No BottomNav on chat page — input bar owns the bottom */}
