@@ -53,6 +53,16 @@ export async function POST(request: NextRequest) {
 
   const history = trimHistory(rawHistory ?? [])
 
+  // Fetch recent session logs to use as compressed history context in the system prompt
+  const { data: recentLogs } = await supabase
+    .from('session_logs')
+    .select('log_date, observation, action_taken, ai_advice, weather_summary')
+    .eq('crop_id', crop_id)
+    .order('created_at', { ascending: false })
+    .limit(8)
+
+  const sessionLogs = (recentLogs ?? []).reverse()
+
   // Save the user's message immediately (images are not stored — too large for DB)
   const savedContent = image ? (message ? `[Photo] ${message}` : '[Photo attached]') : message
   await supabase.from('conversations').insert({
@@ -83,7 +93,8 @@ export async function POST(request: NextRequest) {
       status: crop.status,
       notes: crop.notes,
     },
-    weather
+    weather,
+    sessionLogs
   )
 
   // Stream response from Anthropic
