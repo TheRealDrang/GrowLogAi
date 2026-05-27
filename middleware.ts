@@ -32,7 +32,10 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const path = request.nextUrl.pathname
-  const isPublic = PUBLIC_PATHS.some(p => path === p || path.startsWith('/auth/'))
+  // Claude chose this approach because: the cron route authenticates via CRON_SECRET header,
+  // not via session cookie, so middleware auth check must be skipped for it
+  const isPublic = PUBLIC_PATHS.some(p => path === p || path.startsWith('/auth/')) ||
+    path.startsWith('/api/cron/')
 
   if (!user && !isPublic) {
     // Redirect unauthenticated users to login
