@@ -509,6 +509,23 @@ export default function SettingsPage() {
           />
         )}
 
+        {/* Help */}
+        <section className="card p-6">
+          <h2 className="font-serif text-xl text-soil mb-5">Help</h2>
+          <a
+            href="https://www.notion.so/GrowLog-AI-Knowledge-Base-36dcc739f5188098b8fcfe6b47be706b"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 text-sm font-sans text-bark hover:text-moss transition-colors group"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5 shrink-0 text-moss">
+              <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 16v-4M12 8h.01" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Knowledge Base <span className="text-bark/40 group-hover:text-moss/60">→</span></span>
+          </a>
+        </section>
+
         {/* Account */}
         <section className="card p-6">
           <h2 className="font-serif text-xl text-soil mb-5">Account</h2>

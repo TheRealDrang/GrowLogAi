@@ -44,6 +44,7 @@ interface Props {
   cropName: string
   sowDate?: string | null
   currentUserDisplayName?: string
+  alertContext?: string | null
 }
 
 function stripJsonBlock(text: string): string {
@@ -79,7 +80,7 @@ function getStarters(cropName: string, sowDate: string | null | undefined): stri
   ]
 }
 
-export default function CropChatClient({ cropId, initialHistory, sessionLogs, cropName, sowDate, currentUserDisplayName }: Props) {
+export default function CropChatClient({ cropId, initialHistory, sessionLogs, cropName, sowDate, currentUserDisplayName, alertContext }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialHistory)
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -92,6 +93,8 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null)
   const [loggingToDiary, setLoggingToDiary] = useState(false)
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null)
+  // alertContext is sent on the first message only, then cleared
+  const pendingAlertContext = useRef<string | null>(alertContext ?? null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -225,6 +228,10 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
     setStreamBuffer('')
 
     try {
+      // Send alertContext on the first message only, then clear it
+      const contextToSend = pendingAlertContext.current
+      pendingAlertContext.current = null
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -232,6 +239,7 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
           crop_id: cropId,
           message: msg,
           image: imageToSend ? { data: imageToSend.data, mediaType: imageToSend.mediaType } : undefined,
+          alertContext: contextToSend ?? undefined,
         }),
       })
 

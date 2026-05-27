@@ -4,8 +4,15 @@ import Link from 'next/link'
 import CropChatClient from './CropChatClient'
 import EditCropModal from '@/components/EditCropModal'
 
-export default async function CropPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CropPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ alert?: string }>
+}) {
   const { id } = await params
+  const resolvedSearch = await searchParams
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -46,6 +53,18 @@ export default async function CropPage({ params }: { params: Promise<{ id: strin
 
   const currentUserDisplayName = profileMap[user.id]
 
+  // Read optional ?alert=[id] param — used when navigating from an Advisor Note
+  const alertId = resolvedSearch?.alert ?? null
+  let alertContext: string | null = null
+  if (alertId) {
+    const { data: alertRow } = await supabase
+      .from('garden_alerts')
+      .select('chat_context')
+      .eq('id', alertId)
+      .single()
+    alertContext = alertRow?.chat_context ?? null
+  }
+
   const garden = crop.gardens as { id: string; name: string; location: string | null; usda_zone: string | null }
 
   return (
@@ -80,7 +99,21 @@ export default async function CropPage({ params }: { params: Promise<{ id: strin
             )}
           </div>
 
-          <EditCropModal crop={crop} gardenId={garden.id} />
+          <div className="hidden sm:flex items-center gap-2">
+            <a
+              href="https://www.notion.so/GrowLog-AI-Knowledge-Base-36dcc739f5188098b8fcfe6b47be706b"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-parchment/70 hover:text-parchment transition-colors"
+              title="Knowledge Base"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
+                <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 16v-4M12 8h.01" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
+            <EditCropModal crop={crop} gardenId={garden.id} />
+          </div>
         </div>
       </header>
 
@@ -99,6 +132,7 @@ export default async function CropPage({ params }: { params: Promise<{ id: strin
         cropName={crop.name}
         sowDate={crop.sow_date}
         currentUserDisplayName={currentUserDisplayName}
+        alertContext={alertContext}
       />
 
       {/* No BottomNav on chat page — input bar owns the bottom */}

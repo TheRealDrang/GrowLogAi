@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { crop_id, message, image } = body
+  const { crop_id, message, image, alertContext } = body
 
   if (!crop_id || (!message && !image)) {
     return NextResponse.json({ error: 'crop_id and message or image are required' }, { status: 400 })
@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
       ? await fetchWeather(garden.latitude, garden.longitude)
       : null
 
-  // Build system prompt
-  const systemPrompt = buildSystemPrompt(
+  // Build system prompt, appending alert context if provided
+  const baseSystemPrompt = buildSystemPrompt(
     {
       name: garden.name,
       location: garden.location,
@@ -96,6 +96,11 @@ export async function POST(request: NextRequest) {
     weather,
     sessionLogs
   )
+
+  // If the user tapped an Advisor Note, append its context to guide the first reply
+  const systemPrompt = alertContext
+    ? baseSystemPrompt + `\n\n## Alert Context\n${alertContext}`
+    : baseSystemPrompt
 
   // Stream response from Anthropic
   const stream = anthropic.messages.stream({
@@ -172,6 +177,15 @@ export async function POST(request: NextRequest) {
             .single()
 
           sessionLogId = logRow?.id ?? null
+
+          // Auto-acknowledge active alerts for this crop — fire-and-forget
+          supabase
+            .from('garden_alerts')
+            .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
+            .eq('crop_id', crop_id)
+            .eq('user_id', user.id)
+            .eq('status', 'active')
+            .then(() => {})
         }
 
         // Post to sheet (fire-and-forget) — prefer Sheets API for Google users,
