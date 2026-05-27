@@ -9,6 +9,7 @@ interface NavItem {
   label: string
   active: boolean
   disabled: boolean
+  external?: boolean
   icon: React.ReactNode
   tooltipId?: string
   tooltipMessage?: string
@@ -65,6 +66,19 @@ export default function BottomNav({ gardenId, cropId }: Props) {
       ),
     },
     {
+      href: 'https://www.notion.so/GrowLog-AI-Knowledge-Base-36dcc739f5188098b8fcfe6b47be706b',
+      label: 'Help',
+      active: false,
+      disabled: false,
+      external: true,
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6">
+          <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M12 16v-4M12 8h.01" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ),
+    },
+    {
       href: '/settings',
       label: 'Settings',
       active: path === '/settings',
@@ -109,6 +123,15 @@ export default function BottomNav({ gardenId, cropId }: Props) {
             >
               {content}
             </span>
+          ) : item.external ? (
+            <a
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${itemClass} transition-colors text-parchment/40 hover:text-parchment/70`}
+            >
+              {content}
+            </a>
           ) : (
             <Link
               href={item.href}
