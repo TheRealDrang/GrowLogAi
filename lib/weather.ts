@@ -17,6 +17,33 @@ function calcMildewRisk(humidity: number, tempC: number): WeatherData['mildewRis
   return 'low'
 }
 
+export interface ForecastData {
+  dailyRainMm: number[]         // [today, +1, +2] precipitation total mm
+  dailyMinTemp: number[]        // min temp per day
+  dailyMaxTemp: number[]        // max temp per day
+  dailyMaxHumidity: number[]    // max hourly humidity per day
+  dailyMaxWindKph: number[]     // max wind speed per day
+}
+
+export async function fetchForecast(lat: number, lon: number): Promise<ForecastData | null> {
+  try {
+    const key = process.env.WEATHERAPI_KEY
+    if (!key) return null
+    const url = `https://api.weatherapi.com/v1/forecast.json?key=${key}&q=${lat},${lon}&days=3&aqi=no&alerts=yes`
+    const res = await fetch(url, { next: { revalidate: 1800 } })
+    if (!res.ok) return null
+    const json = await res.json()
+    const days = json.forecast.forecastday
+    return {
+      dailyRainMm:      days.map((d: { day: { totalprecip_mm: number } }) => d.day.totalprecip_mm),
+      dailyMinTemp:     days.map((d: { day: { mintemp_c: number } }) => d.day.mintemp_c),
+      dailyMaxTemp:     days.map((d: { day: { maxtemp_c: number } }) => d.day.maxtemp_c),
+      dailyMaxHumidity: days.map((d: { hour: { humidity: number }[] }) => Math.max(...d.hour.map(h => h.humidity))),
+      dailyMaxWindKph:  days.map((d: { day: { maxwind_kph: number } }) => d.day.maxwind_kph),
+    }
+  } catch { return null }
+}
+
 // Fetch current weather from WeatherAPI.com (uses real station observations)
 export async function fetchWeather(lat: number, lon: number): Promise<WeatherData | null> {
   try {

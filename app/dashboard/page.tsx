@@ -9,6 +9,7 @@ import DailyWeatherTrigger from '@/components/DailyWeatherTrigger'
 import DirtFooter from '@/components/DirtFooter'
 import InviteBanner from './InviteBanner'
 import TooltipTip from '@/components/TooltipTip'
+import AdvisorNotes from '@/components/AdvisorNotes'
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient()
@@ -49,6 +50,16 @@ export default async function DashboardPage() {
     ;(profiles ?? []).forEach(p => { inviterMap[p.id] = p.display_name ?? 'Someone' })
   }
 
+  // Fetch active, non-expired alerts for this user (RLS restricts to own data)
+  const now = new Date().toISOString()
+  const { data: alertData } = await supabase
+    .from('garden_alerts')
+    .select('id, alert_type, priority, title, body, action_label, action_url, gardens(name), crops(name)')
+    .eq('status', 'active')
+    .or(`expires_at.is.null,expires_at.gt.${now}`)
+    .order('priority')
+    .order('generated_at', { ascending: false })
+
   const invites = (pendingInvites ?? []).map(i => ({
     token: i.token as string,
     role: i.role as string,
@@ -82,6 +93,15 @@ export default async function DashboardPage() {
       <main className="flex-1 max-w-4xl mx-auto px-5 py-8 w-full">
         {/* Pending invite banners */}
         {invites.length > 0 && <InviteBanner invites={invites} />}
+
+        {/* Advisor Notes — proactive alerts from the daily cron */}
+        {/* Claude chose this cast because: Supabase returns joined tables as arrays,
+            but we select at most one garden/crop per alert, so index 0 is safe */}
+        <AdvisorNotes initialAlerts={(alertData ?? []).map(a => ({
+          ...a,
+          gardens: Array.isArray(a.gardens) ? (a.gardens[0] ?? null) : (a.gardens as { name: string } | null),
+          crops: Array.isArray(a.crops) ? (a.crops[0] ?? null) : (a.crops as { name: string } | null),
+        }))} />
 
         <div className="flex items-end justify-between mb-6">
           <div>
