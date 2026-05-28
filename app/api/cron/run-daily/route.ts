@@ -1,4 +1,6 @@
 import { generateAlerts, sendDigests } from '@/lib/alerts'
+import { logDailyWeatherForAllOwners } from '@/lib/daily-weather-log'
+import { createSupabaseAdminClient } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 
 // POST /api/cron/run-daily
@@ -26,5 +28,14 @@ export async function POST(request: NextRequest) {
     console.error('[cron] sendDigests failed:', err)
   }
 
-  return NextResponse.json({ alertsOk, digestsOk })
+  let weatherLogOk = false
+  let weatherLogResult = null
+  try {
+    weatherLogResult = await logDailyWeatherForAllOwners(createSupabaseAdminClient())
+    weatherLogOk = true
+  } catch (err) {
+    console.error('[cron] logDailyWeatherForAllOwners failed:', err)
+  }
+
+  return NextResponse.json({ alertsOk, digestsOk, weatherLogOk, weatherLogResult })
 }
