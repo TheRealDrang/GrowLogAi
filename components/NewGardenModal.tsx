@@ -96,7 +96,7 @@ export default function NewGardenModal() {
     router.refresh()
   }
 
-  function useExistingLocation(garden: ExistingGarden) {
+  function applyExistingLocation(garden: ExistingGarden) {
     setLocation(garden.location ?? '')
     setGeo({
       lat: garden.latitude,
@@ -152,7 +152,7 @@ export default function NewGardenModal() {
                       <button
                         key={g.id}
                         type="button"
-                        onClick={() => useExistingLocation(g)}
+                        onClick={() => applyExistingLocation(g)}
                         className="text-xs font-sans px-3 py-1.5 rounded-full border border-sage/40 bg-sage/10 text-moss hover:bg-sage/20 transition-colors"
                       >
                         {g.name}

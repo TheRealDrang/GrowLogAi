@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from './fetch-timeout'
+
 export interface GeoResult {
   lat: number
   lon: number
@@ -12,12 +14,12 @@ export async function geocodeLocation(location: string): Promise<{ lat: number; 
   url.searchParams.set('format', 'json')
   url.searchParams.set('limit', '1')
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithTimeout(url.toString(), {
     headers: {
       // Nominatim requires a descriptive User-Agent per their usage policy
       'User-Agent': 'GrowLogAI/1.0 (garden logging app)',
     },
-  })
+  }, 6000)
 
   if (!res.ok) return null
 
@@ -42,9 +44,9 @@ export async function getUsdaZone(lat: number, lon: number): Promise<string | nu
 
   for (const [tryLat, tryLon] of attempts) {
     try {
-      const res = await fetch(`https://phzmapi.org/${tryLat}/${tryLon}.json`, {
+      const res = await fetchWithTimeout(`https://phzmapi.org/${tryLat}/${tryLon}.json`, {
         headers: { 'User-Agent': 'GrowLogAI/1.0 (garden logging app)' },
-      })
+      }, 4000)
       if (!res.ok) continue
       const data = await res.json()
       if (data.zone) return data.zone

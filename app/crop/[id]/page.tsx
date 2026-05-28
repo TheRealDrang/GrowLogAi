@@ -4,6 +4,8 @@ import Link from 'next/link'
 import CropChatClient from './CropChatClient'
 import EditCropModal from '@/components/EditCropModal'
 
+const INITIAL_HISTORY_LIMIT = 50
+
 export default async function CropPage({
   params,
   searchParams,
@@ -29,7 +31,8 @@ export default async function CropPage({
     .from('conversations')
     .select('role, content, created_at, created_by')
     .eq('crop_id', id)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
+    .limit(INITIAL_HISTORY_LIMIT)
 
   const { data: sessionLogs } = await supabase
     .from('session_logs')
@@ -120,7 +123,7 @@ export default async function CropPage({
       {/* Chat body — scrolls independently */}
       <CropChatClient
         cropId={id}
-        initialHistory={(history ?? []).map(m => ({
+        initialHistory={(history ?? []).reverse().map(m => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
           attributedTo: m.role === 'user' && m.created_by ? profileMap[m.created_by] : undefined,
