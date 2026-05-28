@@ -1,6 +1,8 @@
 // Google Sheets and Drive API helpers — used for Google OAuth users only.
 // Email/password users continue to use the Apps Script approach.
 
+import { fetchWithTimeout } from './fetch-timeout'
+
 const HEADERS = ['Date', 'Crop', 'Variety', 'Bed', 'Observation', 'Action Taken', 'AI Advice', 'Weather', 'Full Response']
 
 export interface SheetRowData {
@@ -18,7 +20,7 @@ export interface SheetRowData {
 // Exchange a stored refresh token for a fresh access token
 export async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   try {
-    const res = await fetch('https://oauth2.googleapis.com/token', {
+    const res = await fetchWithTimeout('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -27,7 +29,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<string |
         client_id: process.env.GOOGLE_CLIENT_ID!,
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
       }),
-    })
+    }, 6000)
     if (!res.ok) return null
     const data = await res.json()
     return data.access_token ?? null
@@ -39,7 +41,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<string |
 // Create a new Google Spreadsheet and return its ID
 export async function createSpreadsheet(accessToken: string, title: string): Promise<string | null> {
   try {
-    const res = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+    const res = await fetchWithTimeout('https://sheets.googleapis.com/v4/spreadsheets', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -50,7 +52,7 @@ export async function createSpreadsheet(accessToken: string, title: string): Pro
         // Start with a placeholder Overview sheet — crop tabs are created on first chat
         sheets: [{ properties: { title: 'Overview' } }],
       }),
-    })
+    }, 10000)
     if (!res.ok) return null
     const data = await res.json()
     return data.spreadsheetId ?? null
@@ -94,31 +96,32 @@ export async function appendToDailyLog(
   const rangeUrl = (range: string) =>
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`
 
-  const appendRes = await fetch(rangeUrl('Daily Log!A1'), {
+  const appendRes = await fetchWithTimeout(rangeUrl('Daily Log!A1'), {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ values: [values] }),
-  })
+  }, 8000)
 
   if (appendRes.ok) return true
 
   // Tab doesn't exist yet — create it with headers
-  const addSheetRes = await fetch(
+  const addSheetRes = await fetchWithTimeout(
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
     {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ requests: [{ addSheet: { properties: { title: 'Daily Log' } } }] }),
-    }
+    },
+    10000
   )
 
   if (!addSheetRes.ok) return false
 
-  const writeRes = await fetch(rangeUrl('Daily Log!A1'), {
+  const writeRes = await fetchWithTimeout(rangeUrl('Daily Log!A1'), {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ values: [DAILY_LOG_HEADERS, values] }),
-  })
+  }, 8000)
 
   return writeRes.ok
 }
@@ -146,22 +149,23 @@ export async function appendToSheet(
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`
 
   // Try appending directly — works if the tab already exists
-  const appendRes = await fetch(rangeUrl(`${sheetTitle}!A1`), {
+  const appendRes = await fetchWithTimeout(rangeUrl(`${sheetTitle}!A1`), {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ values: [values] }),
-  })
+  }, 8000)
 
   if (appendRes.ok) return true
 
   // Tab doesn't exist — add it
-  const addSheetRes = await fetch(
+  const addSheetRes = await fetchWithTimeout(
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
     {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ requests: [{ addSheet: { properties: { title: sheetTitle } } }] }),
-    }
+    },
+    10000
   )
 
   if (!addSheetRes.ok) return false
@@ -172,17 +176,17 @@ export async function appendToSheet(
   const newSheetId = addSheetData.replies?.[0]?.addSheet?.properties?.sheetId
 
   // Write header row + data row
-  const writeRes = await fetch(rangeUrl(`${sheetTitle}!A1`), {
+  const writeRes = await fetchWithTimeout(rangeUrl(`${sheetTitle}!A1`), {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ values: [HEADERS, values] }),
-  })
+  }, 8000)
 
   if (!writeRes.ok) return false
 
   // Set clip (no-wrap) on the Full Response column (column I, index 8) for new tabs
   if (newSheetId !== undefined) {
-    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+    await fetchWithTimeout(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -194,7 +198,7 @@ export async function appendToSheet(
           },
         }],
       }),
-    })
+    }, 8000)
   }
 
   return true
@@ -209,7 +213,7 @@ export async function shareSheetWithMember(
   driveRole: 'reader' | 'writer'
 ): Promise<boolean> {
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://www.googleapis.com/drive/v3/files/${spreadsheetId}/permissions`,
       {
         method: 'POST',
@@ -218,7 +222,8 @@ export async function shareSheetWithMember(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ type: 'user', role: driveRole, emailAddress: email }),
-      }
+      },
+      8000
     )
     return res.ok
   } catch {

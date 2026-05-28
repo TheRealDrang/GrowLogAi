@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from './fetch-timeout'
+
 export interface WeatherData {
   temperature: number      // Celsius
   humidity: number         // percent
@@ -30,7 +32,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     const key = process.env.WEATHERAPI_KEY
     if (!key) return null
     const url = `https://api.weatherapi.com/v1/forecast.json?key=${key}&q=${lat},${lon}&days=3&aqi=no&alerts=yes`
-    const res = await fetch(url, { next: { revalidate: 1800 } })
+    const res = await fetchWithTimeout(url, { next: { revalidate: 1800 } }, 6000)
     if (!res.ok) return null
     const json = await res.json()
     const days = json.forecast.forecastday
@@ -52,7 +54,7 @@ export async function fetchWeather(lat: number, lon: number): Promise<WeatherDat
 
     const url = `https://api.weatherapi.com/v1/current.json?key=${key}&q=${lat},${lon}&aqi=no`
 
-    const res = await fetch(url, { next: { revalidate: 1800 } }) // cache 30 min
+    const res = await fetchWithTimeout(url, { next: { revalidate: 1800 } }, 6000) // cache 30 min
     if (!res.ok) return null
 
     const json = await res.json()
