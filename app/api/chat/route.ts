@@ -6,6 +6,8 @@ import { postToSheet } from '@/lib/sheet-logger'
 import { refreshAccessToken, appendToSheet } from '@/lib/google-sheets'
 import { NextRequest, NextResponse } from 'next/server'
 
+const CHAT_HISTORY_LIMIT = 20
+
 // POST /api/chat
 // Body: { crop_id: string, message: string }
 // Returns: streaming text response
@@ -49,9 +51,11 @@ export async function POST(request: NextRequest) {
     .from('conversations')
     .select('role, content')
     .eq('crop_id', crop_id)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
+    .limit(CHAT_HISTORY_LIMIT)
 
-  const history = trimHistory(rawHistory ?? [])
+  // Codex chose this approach because: fetching only recent messages keeps long-running crop chats fast while preserving chronological prompt order.
+  const history = trimHistory((rawHistory ?? []).reverse())
 
   // Fetch recent session logs to use as compressed history context in the system prompt
   const { data: recentLogs } = await supabase
