@@ -5,7 +5,6 @@ import Link from 'next/link'
 import NewGardenModal from '@/components/NewGardenModal'
 import SignOutButtonClient from '@/components/SignOutButton'
 import BottomNav from '@/components/BottomNav'
-import DailyWeatherTrigger from '@/components/DailyWeatherTrigger'
 import DirtFooter from '@/components/DirtFooter'
 import InviteBanner from './InviteBanner'
 import TooltipTip from '@/components/TooltipTip'
@@ -70,7 +69,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-straw flex flex-col pb-24 md:pb-0">
-      <DailyWeatherTrigger />
       {/* Header */}
       <header className="bg-moss px-6 py-4 sticky top-0 z-30">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
