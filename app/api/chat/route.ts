@@ -1,12 +1,131 @@
 import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase'
 import { anthropic, buildSystemPrompt, trimHistory } from '@/lib/anthropic'
 import { fetchWeather } from '@/lib/weather'
-import { extractSessionLog } from '@/lib/session-extractor'
+import { extractSessionLog, type SessionLog } from '@/lib/session-extractor'
 import { postToSheet } from '@/lib/sheet-logger'
-import { refreshAccessToken, appendToSheet } from '@/lib/google-sheets'
-import { NextRequest, NextResponse } from 'next/server'
+import { refreshAccessToken, appendToSheet, type SheetRowData } from '@/lib/google-sheets'
+import { after, NextRequest, NextResponse } from 'next/server'
 
 const CHAT_HISTORY_LIMIT = 20
+
+interface ChatGarden {
+  id: string
+  name: string
+  location: string | null
+  usda_zone: string | null
+  latitude: number | null
+  longitude: number | null
+  sheet_url: string | null
+  google_sheet_id: string | null
+}
+
+interface ChatCrop {
+  id: string
+  name: string
+  variety: string | null
+  bed_location: string | null
+  notes: string | null
+}
+
+async function acknowledgeCropAlerts(userId: string, cropId: string) {
+  await createSupabaseAdminClient()
+    .from('garden_alerts')
+    .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
+    .eq('crop_id', cropId)
+    .eq('user_id', userId)
+    .eq('status', 'active')
+}
+
+async function syncSessionLogToSheet(
+  userId: string,
+  garden: ChatGarden,
+  crop: ChatCrop,
+  log: SessionLog,
+  cleanText: string,
+  sessionLogId: string
+) {
+  const rowData: SheetRowData = {
+    log_date: new Date().toISOString().split('T')[0],
+    crop_name: crop.name,
+    variety: crop.variety ?? '',
+    bed_location: crop.bed_location ?? '',
+    observation: log.observation,
+    action_taken: log.action_taken,
+    ai_advice: log.ai_advice,
+    weather_summary: log.weather_summary,
+    full_response: cleanText,
+  }
+
+  const adminSupabase = createSupabaseAdminClient()
+  let posted = false
+
+  if (garden.google_sheet_id) {
+    // Codex chose this approach because: post-response work should avoid request cookies, so privileged sheet sync uses the admin client with explicit IDs.
+    const { data: ownerRow } = await adminSupabase
+      .from('garden_members')
+      .select('user_id')
+      .eq('garden_id', garden.id)
+      .eq('role', 'owner')
+      .single()
+
+    const { data: tokenRow } = await adminSupabase
+      .from('user_google_tokens')
+      .select('refresh_token')
+      .eq('user_id', ownerRow?.user_id ?? userId)
+      .single()
+
+    if (tokenRow?.refresh_token) {
+      const accessToken = await refreshAccessToken(tokenRow.refresh_token)
+      if (accessToken) {
+        posted = await appendToSheet(accessToken, garden.google_sheet_id, crop.name, rowData)
+      }
+    }
+  } else if (garden.sheet_url) {
+    posted = await postToSheet(garden.sheet_url, {
+      token: process.env.SHEET_SECRET_TOKEN ?? '',
+      garden_name: garden.name,
+      ...rowData,
+    })
+  }
+
+  await adminSupabase
+    .from('session_logs')
+    .update({ sheet_posted: posted })
+    .eq('id', sessionLogId)
+}
+
+async function compressConversationHistory(cropId: string, cropNotes: string | null) {
+  const adminSupabase = createSupabaseAdminClient()
+  const { count } = await adminSupabase
+    .from('conversations')
+    .select('id', { count: 'exact', head: true })
+    .eq('crop_id', cropId)
+
+  if ((count ?? 0) <= 20) return
+
+  const { data: oldest } = await adminSupabase
+    .from('conversations')
+    .select('role, content, id')
+    .eq('crop_id', cropId)
+    .order('created_at', { ascending: true })
+    .limit(10)
+
+  if (!oldest || oldest.length === 0) return
+
+  const summary = oldest
+    .map(m => `${m.role}: ${m.content.slice(0, 200)}`)
+    .join('\n')
+
+  const newNotes = `[Earlier conversation summary]\n${summary}\n\n${cropNotes ?? ''}`
+
+  await adminSupabase
+    .from('crops')
+    .update({ notes: newNotes.slice(0, 2000) })
+    .eq('id', cropId)
+
+  const ids = oldest.map(m => m.id)
+  await adminSupabase.from('conversations').delete().in('id', ids)
+}
 
 // POST /api/chat
 // Body: { crop_id: string, message: string }
@@ -146,8 +265,6 @@ export async function POST(request: NextRequest) {
       stream.on('finalMessage', async () => {
         try {
         // Extract the session log JSON from the tail of the response
-        // Claude chose this approach because: controller.close() is called last so
-        // Next.js 16 doesn't terminate the function before DB/sheet writes complete
         const { cleanText, log } = extractSessionLog(fullText)
 
         // Save assistant message (clean version — no json block)
@@ -181,118 +298,22 @@ export async function POST(request: NextRequest) {
             .single()
 
           sessionLogId = logRow?.id ?? null
-
-          // Auto-acknowledge active alerts for this crop — fire-and-forget
-          supabase
-            .from('garden_alerts')
-            .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
-            .eq('crop_id', crop_id)
-            .eq('user_id', user.id)
-            .eq('status', 'active')
-            .then(() => {})
         }
 
-        // Post to sheet (fire-and-forget) — prefer Sheets API for Google users,
-        // fall back to Apps Script for email users with a manual URL configured
-        if (log && sessionLogId) {
-          const rowData = {
-            log_date: new Date().toISOString().split('T')[0],
-            crop_name: crop.name,
-            variety: crop.variety ?? '',
-            bed_location: crop.bed_location ?? '',
-            observation: log.observation,
-            action_taken: log.action_taken,
-            ai_advice: log.ai_advice,
-            weather_summary: log.weather_summary,
-            full_response: cleanText,
+        // Codex chose this approach because: the user should receive the finished chat response before slower sheet sync and cleanup work runs.
+        after(async () => {
+          try {
+            await Promise.all([
+              log ? acknowledgeCropAlerts(user.id, crop_id) : Promise.resolve(),
+              log && sessionLogId
+                ? syncSessionLogToSheet(user.id, garden, crop, log, cleanText, sessionLogId)
+                : Promise.resolve(),
+              compressConversationHistory(crop_id, crop.notes),
+            ])
+          } catch (backgroundErr) {
+            console.error('[chat after-response work error]', backgroundErr)
           }
-
-          if (garden.google_sheet_id) {
-            // Sheet logging always uses the garden owner's credentials, regardless of which member chatted.
-            // Admin client is required because RLS blocks members from reading another user's token.
-            // Claude chose this approach because: the garden_members SELECT policy
-            // only returns the current user's own row, so an invited member can't
-            // see the owner row via the regular client — admin client bypasses RLS.
-            const { data: ownerRow } = await createSupabaseAdminClient()
-              .from('garden_members')
-              .select('user_id')
-              .eq('garden_id', garden.id)
-              .eq('role', 'owner')
-              .single()
-            const { data: tokenRow } = await createSupabaseAdminClient()
-              .from('user_google_tokens')
-              .select('refresh_token')
-              .eq('user_id', ownerRow?.user_id ?? user.id)
-              .single()
-
-            if (tokenRow?.refresh_token) {
-              const accessToken = await refreshAccessToken(tokenRow.refresh_token)
-              if (accessToken) {
-                const posted = await appendToSheet(
-                  accessToken,
-                  garden.google_sheet_id,
-                  crop.name,
-                  rowData
-                )
-                if (sessionLogId) {
-                  supabase
-                    .from('session_logs')
-                    .update({ sheet_posted: posted })
-                    .eq('id', sessionLogId)
-                    .then(() => {})
-                }
-              }
-            }
-          } else if (garden.sheet_url) {
-            // Email user with manually configured Apps Script URL
-            postToSheet(garden.sheet_url, {
-              token: process.env.SHEET_SECRET_TOKEN ?? '',
-              garden_name: garden.name,
-              ...rowData,
-            }).then((posted) => {
-              if (sessionLogId) {
-                supabase
-                  .from('session_logs')
-                  .update({ sheet_posted: posted })
-                  .eq('id', sessionLogId)
-                  .then(() => {})
-              }
-            })
-          }
-        }
-
-        // Summarize and compress history if it has grown beyond 20 turns
-        const { count } = await supabase
-          .from('conversations')
-          .select('id', { count: 'exact', head: true })
-          .eq('crop_id', crop_id)
-
-        if ((count ?? 0) > 20) {
-          // Oldest 10 messages are summarized into crop notes
-          const { data: oldest } = await supabase
-            .from('conversations')
-            .select('role, content, id')
-            .eq('crop_id', crop_id)
-            .order('created_at', { ascending: true })
-            .limit(10)
-
-          if (oldest && oldest.length > 0) {
-            const summary = oldest
-              .map(m => `${m.role}: ${m.content.slice(0, 200)}`)
-              .join('\n')
-
-            const newNotes = `[Earlier conversation summary]\n${summary}\n\n${crop.notes ?? ''}`
-
-            await supabase
-              .from('crops')
-              .update({ notes: newNotes.slice(0, 2000) })
-              .eq('id', crop_id)
-
-            // Delete the summarized messages
-            const ids = oldest.map(m => m.id)
-            await supabase.from('conversations').delete().in('id', ids)
-          }
-        }
+        })
 
         controller.close()
         } catch (finalErr) {
