@@ -3,6 +3,38 @@ import { logDailyWeatherForAllOwners } from '@/lib/daily-weather-log'
 import { createSupabaseAdminClient } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 
+type CronSectionResult<T> = {
+  ok: boolean
+  durationMs: number
+  result: T | null
+  error: string | null
+}
+
+async function runCronSection<T>(
+  name: string,
+  task: () => Promise<T>
+): Promise<CronSectionResult<T>> {
+  const startedAt = Date.now()
+
+  try {
+    const result = await task()
+    return {
+      ok: true,
+      durationMs: Date.now() - startedAt,
+      result,
+      error: null,
+    }
+  } catch (err) {
+    console.error(`[cron] ${name} failed:`, err)
+    return {
+      ok: false,
+      durationMs: Date.now() - startedAt,
+      result: null,
+      error: err instanceof Error ? err.message : 'Unknown error',
+    }
+  }
+}
+
 // POST /api/cron/run-daily
 // Called by Vercel Cron at 05:00 UTC daily.
 // Also callable manually with Authorization: Bearer {CRON_SECRET} for testing.
@@ -12,30 +44,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let alertsOk = false
-  try {
-    await generateAlerts()
-    alertsOk = true
-  } catch (err) {
-    console.error('[cron] generateAlerts failed:', err)
-  }
+  const startedAt = Date.now()
 
-  let digestsOk = false
-  try {
-    await sendDigests()
-    digestsOk = true
-  } catch (err) {
-    console.error('[cron] sendDigests failed:', err)
-  }
+  // Codex chose this approach because: the free infrastructure allows one cron, so each job section must fail/report independently inside that single route.
+  const alerts = await runCronSection('generateAlerts', generateAlerts)
+  const digests = await runCronSection('sendDigests', sendDigests)
+  const weatherLog = await runCronSection('logDailyWeatherForAllOwners', () =>
+    logDailyWeatherForAllOwners(createSupabaseAdminClient())
+  )
 
-  let weatherLogOk = false
-  let weatherLogResult = null
-  try {
-    weatherLogResult = await logDailyWeatherForAllOwners(createSupabaseAdminClient())
-    weatherLogOk = true
-  } catch (err) {
-    console.error('[cron] logDailyWeatherForAllOwners failed:', err)
-  }
-
-  return NextResponse.json({ alertsOk, digestsOk, weatherLogOk, weatherLogResult })
+  return NextResponse.json({
+    ok: alerts.ok && digests.ok && weatherLog.ok,
+    durationMs: Date.now() - startedAt,
+    sections: {
+      alerts,
+      digests,
+      weatherLog,
+    },
+  })
 }

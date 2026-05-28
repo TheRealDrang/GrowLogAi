@@ -27,6 +27,7 @@ type DailyWeatherLogResult = {
   logged: number
   attempted: number
   skipped: number
+  failed: number
 }
 
 const todayIsoDate = () => new Date().toISOString().split('T')[0]
@@ -39,7 +40,7 @@ async function appendWeatherForGardens(
 ): Promise<DailyWeatherLogResult> {
   const dueGardens = gardens.filter(g => g.weather_logged_date !== today)
   if (dueGardens.length === 0) {
-    return { logged: 0, attempted: 0, skipped: gardens.length }
+    return { logged: 0, attempted: 0, skipped: gardens.length, failed: 0 }
   }
 
   const { data: tokenRow, error: tokenError } = await supabase
@@ -49,47 +50,54 @@ async function appendWeatherForGardens(
     .single()
 
   if (tokenError || !tokenRow?.refresh_token) {
-    return { logged: 0, attempted: 0, skipped: dueGardens.length }
+    return { logged: 0, attempted: 0, skipped: dueGardens.length, failed: 0 }
   }
 
   const accessToken = await refreshAccessToken(tokenRow.refresh_token)
   if (!accessToken) {
-    return { logged: 0, attempted: 0, skipped: dueGardens.length }
+    return { logged: 0, attempted: 0, skipped: dueGardens.length, failed: 0 }
   }
 
   let logged = 0
+  let failed = 0
 
   await Promise.all(dueGardens.map(async (garden) => {
-    if (!garden.latitude || !garden.longitude || !garden.google_sheet_id) return
+    try {
+      if (!garden.latitude || !garden.longitude || !garden.google_sheet_id) return
 
-    const weather = await fetchWeather(garden.latitude, garden.longitude)
-    if (!weather) return
+      const weather = await fetchWeather(garden.latitude, garden.longitude)
+      if (!weather) return
 
-    const posted = await appendToDailyLog(accessToken, garden.google_sheet_id, {
-      log_date: today,
-      garden_name: garden.name,
-      location: garden.location ?? '',
-      usda_zone: garden.usda_zone ?? '',
-      temperature: weather.temperature,
-      humidity: weather.humidity,
-      windspeed: weather.windspeed,
-      conditions: weather.description,
-      mildew_risk: weather.mildewRisk,
-    })
+      const posted = await appendToDailyLog(accessToken, garden.google_sheet_id, {
+        log_date: today,
+        garden_name: garden.name,
+        location: garden.location ?? '',
+        usda_zone: garden.usda_zone ?? '',
+        temperature: weather.temperature,
+        humidity: weather.humidity,
+        windspeed: weather.windspeed,
+        conditions: weather.description,
+        mildew_risk: weather.mildewRisk,
+      })
 
-    if (posted) {
-      await supabase
-        .from('gardens')
-        .update({ weather_logged_date: today })
-        .eq('id', garden.id)
-      logged++
+      if (posted) {
+        await supabase
+          .from('gardens')
+          .update({ weather_logged_date: today })
+          .eq('id', garden.id)
+        logged++
+      }
+    } catch (err) {
+      failed++
+      console.error(`[dailyWeatherLog] garden ${garden.id}:`, err)
     }
   }))
 
   return {
     logged,
     attempted: dueGardens.length,
-    skipped: dueGardens.length - logged,
+    skipped: Math.max(dueGardens.length - logged - failed, 0),
+    failed,
   }
 }
 
@@ -109,7 +117,7 @@ export async function logDailyWeatherForUser(
     .map(row => row.garden_id)
 
   if (ownedIds.length === 0) {
-    return { logged: 0, attempted: 0, skipped: 0 }
+    return { logged: 0, attempted: 0, skipped: 0, failed: 0 }
   }
 
   const { data: gardens } = await supabase
@@ -140,7 +148,7 @@ export async function logDailyWeatherForAllOwners(
 
   const ownerMemberships = (ownerMembershipRows ?? []) as OwnerMembership[]
   if (ownerMemberships.length === 0) {
-    return { logged: 0, attempted: 0, skipped: 0 }
+    return { logged: 0, attempted: 0, skipped: 0, failed: 0 }
   }
 
   const ownerByGardenId = new Map(ownerMemberships.map(row => [row.garden_id, row.user_id]))
@@ -158,7 +166,7 @@ export async function logDailyWeatherForAllOwners(
     .filter(garden => garden.weather_logged_date !== today)
 
   if (dueGardens.length === 0) {
-    return { logged: 0, attempted: 0, skipped: 0 }
+    return { logged: 0, attempted: 0, skipped: 0, failed: 0 }
   }
 
   const ownerIds = [...new Set(dueGardens
@@ -183,48 +191,60 @@ export async function logDailyWeatherForAllOwners(
 
   let logged = 0
   let attempted = 0
+  let failed = 0
 
   // Codex chose this approach because: cron can process all owners server-side without making dashboard visitors wait for sheet/weather calls.
   for (const [ownerId, ownerGardens] of gardensByOwnerId) {
-    const refreshToken = tokenByOwnerId.get(ownerId)
-    if (!refreshToken) continue
+    try {
+      const refreshToken = tokenByOwnerId.get(ownerId)
+      if (!refreshToken) continue
 
-    const accessToken = await refreshAccessToken(refreshToken)
-    if (!accessToken) continue
+      const accessToken = await refreshAccessToken(refreshToken)
+      if (!accessToken) continue
 
-    attempted += ownerGardens.length
+      attempted += ownerGardens.length
 
-    await Promise.all(ownerGardens.map(async (garden) => {
-      if (!garden.latitude || !garden.longitude || !garden.google_sheet_id) return
+      await Promise.all(ownerGardens.map(async (garden) => {
+        try {
+          if (!garden.latitude || !garden.longitude || !garden.google_sheet_id) return
 
-      const weather = await fetchWeather(garden.latitude, garden.longitude)
-      if (!weather) return
+          const weather = await fetchWeather(garden.latitude, garden.longitude)
+          if (!weather) return
 
-      const posted = await appendToDailyLog(accessToken, garden.google_sheet_id, {
-        log_date: today,
-        garden_name: garden.name,
-        location: garden.location ?? '',
-        usda_zone: garden.usda_zone ?? '',
-        temperature: weather.temperature,
-        humidity: weather.humidity,
-        windspeed: weather.windspeed,
-        conditions: weather.description,
-        mildew_risk: weather.mildewRisk,
-      })
+          const posted = await appendToDailyLog(accessToken, garden.google_sheet_id, {
+            log_date: today,
+            garden_name: garden.name,
+            location: garden.location ?? '',
+            usda_zone: garden.usda_zone ?? '',
+            temperature: weather.temperature,
+            humidity: weather.humidity,
+            windspeed: weather.windspeed,
+            conditions: weather.description,
+            mildew_risk: weather.mildewRisk,
+          })
 
-      if (posted) {
-        await supabase
-          .from('gardens')
-          .update({ weather_logged_date: today })
-          .eq('id', garden.id)
-        logged++
-      }
-    }))
+          if (posted) {
+            await supabase
+              .from('gardens')
+              .update({ weather_logged_date: today })
+              .eq('id', garden.id)
+            logged++
+          }
+        } catch (err) {
+          failed++
+          console.error(`[dailyWeatherLog] garden ${garden.id}:`, err)
+        }
+      }))
+    } catch (err) {
+      failed += ownerGardens.length
+      console.error(`[dailyWeatherLog] owner ${ownerId}:`, err)
+    }
   }
 
   return {
     logged,
     attempted,
-    skipped: dueGardens.length - logged,
+    skipped: Math.max(dueGardens.length - logged - failed, 0),
+    failed,
   }
 }
