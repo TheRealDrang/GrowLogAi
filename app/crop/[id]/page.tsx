@@ -36,7 +36,7 @@ export default async function CropPage({
 
   const { data: sessionLogs } = await supabase
     .from('session_logs')
-    .select('id, log_date, observation, ai_advice, sheet_posted, full_response, created_by')
+    .select('id, log_date, observation, ai_advice, sheet_posted, full_response, created_by, drive_photo_url')
     .eq('crop_id', id)
     .order('created_at', { ascending: false })
     .limit(10)
@@ -132,6 +132,7 @@ export default async function CropPage({
         sessionLogs={(sessionLogs ?? []).map(l => ({
           ...l,
           createdByName: l.created_by ? profileMap[l.created_by] : undefined,
+          drivePhotoUrl: l.drive_photo_url ?? undefined,
         }))}
         cropName={crop.name}
         sowDate={crop.sow_date}

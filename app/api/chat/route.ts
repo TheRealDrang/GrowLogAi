@@ -339,12 +339,20 @@ export async function POST(request: NextRequest) {
                 const filename = buildDriveFilename(crop.name, log?.observation ?? null)
                 const driveUrl = await uploadImageToDrive(accessToken, image.data, filename, folderId)
                 if (driveUrl) {
+                  const adminSupabaseForDrive = createSupabaseAdminClient()
                   // Persist the Drive URL on the user's conversation row
                   if (userConvId) {
-                    await createSupabaseAdminClient()
+                    await adminSupabaseForDrive
                       .from('conversations')
                       .update({ drive_photo_url: driveUrl })
                       .eq('id', userConvId)
+                  }
+                  // Also store it on the session log so it shows in the garden diary
+                  if (sessionLogId) {
+                    await adminSupabaseForDrive
+                      .from('session_logs')
+                      .update({ drive_photo_url: driveUrl })
+                      .eq('id', sessionLogId)
                   }
                   // Append the Drive URL marker so the client can surface the link
                   controller.enqueue(encoder.encode(`\n\n[DRIVE_URL:${driveUrl}]`))

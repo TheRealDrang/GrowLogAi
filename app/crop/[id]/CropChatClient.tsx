@@ -36,6 +36,7 @@ interface SessionLog {
   sheet_posted: boolean
   full_response: string | null
   createdByName?: string  // display name of who logged this session
+  drivePhotoUrl?: string  // Google Drive link for the photo attached in this session
 }
 
 interface Props {
@@ -267,7 +268,9 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
         setStreamBuffer(stripJsonBlock(full))
       }
 
-      const { displayText, driveUrl } = extractDriveUrl(stripJsonBlock(full))
+      // Extract Drive URL from raw text BEFORE stripJsonBlock, which also strips the marker
+      const { displayText: rawText, driveUrl } = extractDriveUrl(full)
+      const displayText = stripJsonBlock(rawText)
       setMessages(prev => {
         const updated = [...prev]
         // Attach Drive URL to the last user message (the one that had the photo)
@@ -672,6 +675,16 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
                               )}
                             </div>
                           )}
+                          {log.drivePhotoUrl && (
+                            <a
+                              href={log.drivePhotoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block text-xs text-moss hover:underline font-sans"
+                            >
+                              View photo in Drive ↗
+                            </a>
+                          )}
                           <button
                             onClick={() => {
                               setInput(`Following up on my ${log.log_date} diary entry — `)
@@ -790,6 +803,16 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
                               <p className="text-xs text-moss font-sans leading-relaxed italic">{log.ai_advice}</p>
                             )}
                           </div>
+                        )}
+                        {log.drivePhotoUrl && (
+                          <a
+                            href={log.drivePhotoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-xs text-moss hover:underline font-sans"
+                          >
+                            View photo in Drive ↗
+                          </a>
                         )}
                         <button
                           onClick={() => {
