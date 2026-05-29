@@ -9,6 +9,7 @@ interface Message {
   content: string
   imagePreview?: string
   attributedTo?: string  // display name shown above user messages
+  drivePhotoUrl?: string // Google Drive link for uploaded photos
 }
 
 interface AttachedImage {
@@ -35,6 +36,7 @@ interface SessionLog {
   sheet_posted: boolean
   full_response: string | null
   createdByName?: string  // display name of who logged this session
+  drivePhotoUrl?: string  // Google Drive link for the photo attached in this session
 }
 
 interface Props {
@@ -52,7 +54,17 @@ function stripJsonBlock(text: string): string {
   let out = text.replace(/```json[\s\S]*?```\s*$/g, '').trimEnd()
   // Remove partial json blocks still streaming in (no closing ``` yet)
   out = out.replace(/```json[\s\S]*$/, '').trimEnd()
+  // Remove Drive URL marker (may appear at end of stream before client reads it)
+  out = out.replace(/\n\n\[DRIVE_URL:[^\]]+\]$/, '').trimEnd()
   return out
+}
+
+// Extract the [DRIVE_URL:...] marker from the completed stream text.
+// Returns the display text (marker stripped) and the Drive URL (or null).
+function extractDriveUrl(text: string): { displayText: string; driveUrl: string | null } {
+  const match = text.match(/\n\n\[DRIVE_URL:(https?:\/\/[^\]]+)\]$/)
+  if (!match) return { displayText: text, driveUrl: null }
+  return { displayText: text.slice(0, match.index).trimEnd(), driveUrl: match[1] }
 }
 
 function daysSince(dateStr: string): number {
@@ -256,7 +268,22 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
         setStreamBuffer(stripJsonBlock(full))
       }
 
-      setMessages(prev => [...prev, { role: 'assistant', content: stripJsonBlock(full) }])
+      // Extract Drive URL from raw text BEFORE stripJsonBlock, which also strips the marker
+      const { displayText: rawText, driveUrl } = extractDriveUrl(full)
+      const displayText = stripJsonBlock(rawText)
+      setMessages(prev => {
+        const updated = [...prev]
+        // Attach Drive URL to the last user message (the one that had the photo)
+        if (driveUrl) {
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].role === 'user') {
+              updated[i] = { ...updated[i], drivePhotoUrl: driveUrl }
+              break
+            }
+          }
+        }
+        return [...updated, { role: 'assistant', content: displayText }]
+      })
       setStreamBuffer('')
       // Show brief diary-saving indicator, then hide
       setLoggingToDiary(true)
@@ -331,7 +358,7 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
               {msg.role === 'user' && msg.attributedTo && (
                 <p className="text-[10px] text-bark/50 font-sans mb-1 text-right pr-1">{msg.attributedTo}</p>
               )}
-              <ChatMessage role={msg.role} content={msg.content} imagePreview={msg.imagePreview} />
+              <ChatMessage role={msg.role} content={msg.content} imagePreview={msg.imagePreview} drivePhotoUrl={msg.drivePhotoUrl} />
             </div>
           ))}
 
@@ -648,6 +675,16 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
                               )}
                             </div>
                           )}
+                          {log.drivePhotoUrl && (
+                            <a
+                              href={log.drivePhotoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block text-xs text-moss hover:underline font-sans"
+                            >
+                              View photo in Drive ↗
+                            </a>
+                          )}
                           <button
                             onClick={() => {
                               setInput(`Following up on my ${log.log_date} diary entry — `)
@@ -766,6 +803,16 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
                               <p className="text-xs text-moss font-sans leading-relaxed italic">{log.ai_advice}</p>
                             )}
                           </div>
+                        )}
+                        {log.drivePhotoUrl && (
+                          <a
+                            href={log.drivePhotoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-xs text-moss hover:underline font-sans"
+                          >
+                            View photo in Drive ↗
+                          </a>
                         )}
                         <button
                           onClick={() => {

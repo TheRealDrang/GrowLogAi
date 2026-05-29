@@ -2,6 +2,7 @@ interface Props {
   role: 'user' | 'assistant'
   content: string
   imagePreview?: string // base64 data URL, only present for current session
+  drivePhotoUrl?: string // Google Drive view link, stored in DB after upload
 }
 
 // Leaf icon for AI messages — botanical feel, not a robot
@@ -16,7 +17,7 @@ function LeafIcon() {
   )
 }
 
-export default function ChatMessage({ role, content, imagePreview }: Props) {
+export default function ChatMessage({ role, content, imagePreview, drivePhotoUrl }: Props) {
   const isUser = role === 'user'
 
   if (isUser) {
@@ -35,6 +36,16 @@ export default function ChatMessage({ role, content, imagePreview }: Props) {
             <div className="bg-straw border border-straw-dark text-soil rounded-2xl rounded-br-sm px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap font-sans shadow-card">
               {content}
             </div>
+          )}
+          {drivePhotoUrl && (
+            <a
+              href={drivePhotoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-right text-xs text-moss hover:underline font-sans pr-1"
+            >
+              View in Drive ↗
+            </a>
           )}
         </div>
       </div>

@@ -61,6 +61,20 @@ interface AlertCandidate {
   expires_at: string | null
 }
 
+type AlertGenerationResult = {
+  owners: number
+  processed: number
+  alertsGenerated: number
+  failed: number
+}
+
+type DigestSendResult = {
+  users: number
+  sent: number
+  skipped: number
+  failed: number
+}
+
 function buildAlert(
   type: string,
   garden: Garden,
@@ -280,7 +294,7 @@ Weather: ${forecastSummary}`
   }
 }
 
-export async function generateAlerts(): Promise<void> {
+export async function generateAlerts(): Promise<AlertGenerationResult> {
   const adminClient = createSupabaseAdminClient()
 
   // Get all garden owners
@@ -291,6 +305,12 @@ export async function generateAlerts(): Promise<void> {
 
   const today = new Date()
   const isMonday = today.getDay() === 1
+  const result: AlertGenerationResult = {
+    owners: owners?.length ?? 0,
+    processed: 0,
+    alertsGenerated: 0,
+    failed: 0,
+  }
 
   for (const { user_id, garden_id } of owners ?? []) {
     try {
@@ -383,10 +403,15 @@ export async function generateAlerts(): Promise<void> {
       for (const alert of alerts) {
         await upsertAlert(adminClient, user_id, alert)
       }
+      result.processed++
+      result.alertsGenerated += alerts.length
     } catch (err) {
+      result.failed++
       console.error(`[generateAlerts] garden ${garden_id}:`, err)
     }
   }
+
+  return result
 }
 
 function buildSubjectLine(alerts: { priority: number; title: string }[], displayName: string | null): string {
@@ -487,7 +512,7 @@ function buildDigestEmailHtml(
 </html>`
 }
 
-export async function sendDigests(): Promise<void> {
+export async function sendDigests(): Promise<DigestSendResult> {
   const adminClient = createSupabaseAdminClient()
   const resend = new Resend(process.env.RESEND_API_KEY)
   const todayStr = new Date().toISOString().split('T')[0]
@@ -501,6 +526,12 @@ export async function sendDigests(): Promise<void> {
     .or(`expires_at.is.null,expires_at.gt.${now}`)
 
   const userIds = [...new Set((alertRows ?? []).map(r => r.user_id))]
+  const result: DigestSendResult = {
+    users: userIds.length,
+    sent: 0,
+    skipped: 0,
+    failed: 0,
+  }
 
   for (const user_id of userIds) {
     try {
@@ -510,7 +541,10 @@ export async function sendDigests(): Promise<void> {
         .select('display_name, digest_enabled')
         .eq('id', user_id)
         .single()
-      if (!profile?.digest_enabled) continue
+      if (!profile?.digest_enabled) {
+        result.skipped++
+        continue
+      }
 
       // Check if we already sent one today
       const { count } = await adminClient
@@ -518,11 +552,17 @@ export async function sendDigests(): Promise<void> {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user_id)
         .gte('sent_at', `${todayStr}T00:00:00Z`)
-      if ((count ?? 0) > 0) continue
+      if ((count ?? 0) > 0) {
+        result.skipped++
+        continue
+      }
 
       // Get user email via admin auth
       const { data: { user } } = await adminClient.auth.admin.getUserById(user_id)
-      if (!user?.email) continue
+      if (!user?.email) {
+        result.skipped++
+        continue
+      }
 
       // Fetch top 10 active alerts by priority
       const { data: alerts } = await adminClient
@@ -535,7 +575,10 @@ export async function sendDigests(): Promise<void> {
         .order('generated_at', { ascending: false })
         .limit(10)
 
-      if (!alerts || alerts.length === 0) continue
+      if (!alerts || alerts.length === 0) {
+        result.skipped++
+        continue
+      }
 
       const top5 = alerts.slice(0, 5)
       const remaining = alerts.length - 5
@@ -552,8 +595,12 @@ export async function sendDigests(): Promise<void> {
         alert_count: alerts.length,
         email_id: (emailResult as { id?: string } | null)?.id ?? null,
       })
+      result.sent++
     } catch (err) {
+      result.failed++
       console.error(`[sendDigests] user ${user_id}:`, err)
     }
   }
+
+  return result
 }

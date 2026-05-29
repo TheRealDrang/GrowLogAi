@@ -4,6 +4,7 @@ import { fetchWeather } from '@/lib/weather'
 import { extractSessionLog, type SessionLog } from '@/lib/session-extractor'
 import { postToSheet } from '@/lib/sheet-logger'
 import { refreshAccessToken, appendToSheet, type SheetRowData } from '@/lib/google-sheets'
+import { getOrCreateGrowLogFolder, uploadImageToDrive, buildDriveFilename } from '@/lib/google-drive'
 import { after, NextRequest, NextResponse } from 'next/server'
 
 const CHAT_HISTORY_LIMIT = 20
@@ -17,6 +18,7 @@ interface ChatGarden {
   longitude: number | null
   sheet_url: string | null
   google_sheet_id: string | null
+  drive_folder_id: string | null
 }
 
 interface ChatCrop {
@@ -146,7 +148,7 @@ export async function POST(request: NextRequest) {
   // Load crop + garden details — RLS verifies the user is a garden member
   const { data: crop, error: cropError } = await supabase
     .from('crops')
-    .select('*, gardens(id, name, location, usda_zone, latitude, longitude, sheet_url, google_sheet_id)')
+    .select('*, gardens(id, name, location, usda_zone, latitude, longitude, sheet_url, google_sheet_id, drive_folder_id)')
     .eq('id', crop_id)
     .single()
 
@@ -163,6 +165,7 @@ export async function POST(request: NextRequest) {
     longitude: number | null
     sheet_url: string | null
     google_sheet_id: string | null
+    drive_folder_id: string | null
   }
 
   // Fetch conversation history for all members of this crop's garden
@@ -188,12 +191,33 @@ export async function POST(request: NextRequest) {
 
   // Save the user's message immediately (images are not stored — too large for DB)
   const savedContent = image ? (message ? `[Photo] ${message}` : '[Photo attached]') : message
-  await supabase.from('conversations').insert({
+  const { data: userConvRow } = await supabase.from('conversations').insert({
     crop_id,
     created_by: user.id,
     role: 'user',
     content: savedContent,
-  })
+  }).select('id').single()
+  const userConvId: string | null = userConvRow?.id ?? null
+
+  // Pre-fetch garden owner's Google refresh token for Drive upload (only when a photo is attached)
+  // Claude chose this approach because: Drive upload happens inside the stream callback where
+  // the request-scoped client may have issues, so we resolve the token before streaming starts.
+  let ownerDriveRefreshToken: string | null = null
+  if (image) {
+    const adminSupabase = createSupabaseAdminClient()
+    const { data: ownerRow } = await adminSupabase
+      .from('garden_members')
+      .select('user_id')
+      .eq('garden_id', garden.id)
+      .eq('role', 'owner')
+      .single()
+    const { data: tokenRow } = await adminSupabase
+      .from('user_google_tokens')
+      .select('refresh_token')
+      .eq('user_id', ownerRow?.user_id ?? user.id)
+      .single()
+    ownerDriveRefreshToken = tokenRow?.refresh_token ?? null
+  }
 
   // Fetch weather if garden has coordinates
   const weather =
@@ -298,6 +322,47 @@ export async function POST(request: NextRequest) {
             .single()
 
           sessionLogId = logRow?.id ?? null
+        }
+
+        // Upload photo to Drive if one was attached and we have a valid token
+        if (image && ownerDriveRefreshToken) {
+          try {
+            const accessToken = await refreshAccessToken(ownerDriveRefreshToken)
+            if (accessToken) {
+              const folderId = await getOrCreateGrowLogFolder(
+                accessToken,
+                garden.name,
+                garden.id,
+                garden.drive_folder_id
+              )
+              if (folderId) {
+                const filename = buildDriveFilename(crop.name, log?.observation ?? null)
+                const driveUrl = await uploadImageToDrive(accessToken, image.data, filename, folderId)
+                if (driveUrl) {
+                  const adminSupabaseForDrive = createSupabaseAdminClient()
+                  // Persist the Drive URL on the user's conversation row
+                  if (userConvId) {
+                    await adminSupabaseForDrive
+                      .from('conversations')
+                      .update({ drive_photo_url: driveUrl })
+                      .eq('id', userConvId)
+                  }
+                  // Also store it on the session log so it shows in the garden diary
+                  if (sessionLogId) {
+                    await adminSupabaseForDrive
+                      .from('session_logs')
+                      .update({ drive_photo_url: driveUrl })
+                      .eq('id', sessionLogId)
+                  }
+                  // Append the Drive URL marker so the client can surface the link
+                  controller.enqueue(encoder.encode(`\n\n[DRIVE_URL:${driveUrl}]`))
+                }
+              }
+            }
+          } catch (driveErr) {
+            // Drive failure is non-fatal — chat succeeds regardless
+            console.error('[drive upload error]', driveErr)
+          }
         }
 
         // Codex chose this approach because: the user should receive the finished chat response before slower sheet sync and cleanup work runs.
