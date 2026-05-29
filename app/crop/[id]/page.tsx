@@ -29,7 +29,7 @@ export default async function CropPage({
 
   const { data: history } = await supabase
     .from('conversations')
-    .select('role, content, created_at, created_by')
+    .select('role, content, created_at, created_by, drive_photo_url')
     .eq('crop_id', id)
     .order('created_at', { ascending: false })
     .limit(INITIAL_HISTORY_LIMIT)
@@ -127,6 +127,7 @@ export default async function CropPage({
           role: m.role as 'user' | 'assistant',
           content: m.content,
           attributedTo: m.role === 'user' && m.created_by ? profileMap[m.created_by] : undefined,
+          drivePhotoUrl: m.drive_photo_url ?? undefined,
         }))}
         sessionLogs={(sessionLogs ?? []).map(l => ({
           ...l,
