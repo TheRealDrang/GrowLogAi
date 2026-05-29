@@ -3,7 +3,7 @@
 
 import { fetchWithTimeout } from './fetch-timeout'
 
-const HEADERS = ['Date', 'Crop', 'Variety', 'Bed', 'Observation', 'Action Taken', 'AI Advice', 'Weather', 'Full Response']
+const HEADERS = ['Date', 'Crop', 'Variety', 'Bed', 'Observation', 'Action Taken', 'AI Advice', 'Weather', 'Full Response', 'Photo Link']
 
 export interface SheetRowData {
   log_date: string
@@ -15,6 +15,7 @@ export interface SheetRowData {
   ai_advice: string
   weather_summary: string
   full_response: string
+  photo_url?: string
 }
 
 // Exchange a stored refresh token for a fresh access token
@@ -143,6 +144,7 @@ export async function appendToSheet(
     row.ai_advice,
     row.weather_summary,
     row.full_response,
+    row.photo_url ?? '',
   ]
 
   const rangeUrl = (range: string) =>

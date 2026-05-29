@@ -44,7 +44,8 @@ async function syncSessionLogToSheet(
   crop: ChatCrop,
   log: SessionLog,
   cleanText: string,
-  sessionLogId: string
+  sessionLogId: string,
+  drivePhotoUrl: string | null = null
 ) {
   const rowData: SheetRowData = {
     log_date: new Date().toISOString().split('T')[0],
@@ -56,6 +57,7 @@ async function syncSessionLogToSheet(
     ai_advice: log.ai_advice,
     weather_summary: log.weather_summary,
     full_response: cleanText,
+    photo_url: drivePhotoUrl ?? undefined,
   }
 
   const adminSupabase = createSupabaseAdminClient()
@@ -325,6 +327,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Upload photo to Drive if one was attached and we have a valid token
+        // Declared outside the try block so after() closure can pass it to sheet sync
+        let capturedDriveUrl: string | null = null
         if (image && ownerDriveRefreshToken) {
           try {
             const accessToken = await refreshAccessToken(ownerDriveRefreshToken)
@@ -339,6 +343,7 @@ export async function POST(request: NextRequest) {
                 const filename = buildDriveFilename(crop.name, log?.observation ?? null)
                 const driveUrl = await uploadImageToDrive(accessToken, image.data, filename, folderId)
                 if (driveUrl) {
+                  capturedDriveUrl = driveUrl
                   const adminSupabaseForDrive = createSupabaseAdminClient()
                   // Persist the Drive URL on the user's conversation row
                   if (userConvId) {
@@ -371,7 +376,7 @@ export async function POST(request: NextRequest) {
             await Promise.all([
               log ? acknowledgeCropAlerts(user.id, crop_id) : Promise.resolve(),
               log && sessionLogId
-                ? syncSessionLogToSheet(user.id, garden, crop, log, cleanText, sessionLogId)
+                ? syncSessionLogToSheet(user.id, garden, crop, log, cleanText, sessionLogId, capturedDriveUrl)
                 : Promise.resolve(),
               compressConversationHistory(crop_id, crop.notes),
             ])
