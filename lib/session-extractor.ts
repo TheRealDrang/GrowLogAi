@@ -3,6 +3,7 @@ export interface SessionLog {
   action_taken: string
   ai_advice: string
   weather_summary: string
+  confidence?: 'high' | 'medium' | 'low'
 }
 
 // Strip the ```json ... ``` block from the AI response tail and extract the log
