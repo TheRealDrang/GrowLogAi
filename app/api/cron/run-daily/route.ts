@@ -35,10 +35,10 @@ async function runCronSection<T>(
   }
 }
 
-// POST /api/cron/run-daily
-// Called by Vercel Cron at 05:00 UTC daily.
+// GET /api/cron/run-daily
+// Called by Vercel Cron at 05:00 UTC daily (Vercel Cron always uses GET).
 // Also callable manually with Authorization: Bearer {CRON_SECRET} for testing.
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   const auth = request.headers.get('Authorization')
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
