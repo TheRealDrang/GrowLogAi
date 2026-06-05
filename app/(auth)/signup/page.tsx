@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
@@ -27,9 +28,13 @@ function GoogleIcon() {
   )
 }
 
-export default function SignupPage() {
+function SignupForm() {
+  const searchParams = useSearchParams()
+  // Pre-filled when arriving from an invite link — locked to that address
+  const inviteEmail = searchParams.get('email') ?? ''
+
   const [firstName, setFirstName] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(inviteEmail)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -183,9 +188,15 @@ export default function SignupPage() {
                 autoComplete="off"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="input"
+                readOnly={!!inviteEmail}
+                className={`input ${inviteEmail ? 'bg-straw text-bark cursor-default' : ''}`}
                 placeholder="you@example.com"
               />
+              {inviteEmail && (
+                <p className="text-xs text-bark/70 font-sans mt-1">
+                  This account will be tied to your invite email.
+                </p>
+              )}
             </div>
 
             <div>
@@ -227,11 +238,22 @@ export default function SignupPage() {
 
         <p className="text-center text-sm text-bark font-sans mt-6">
           Already have an account?{' '}
-          <Link href="/login" className="text-moss font-medium hover:underline">
+          <Link
+            href={searchParams.get('next') ? `/login?next=${encodeURIComponent(searchParams.get('next')!)}` : '/login'}
+            className="text-moss font-medium hover:underline"
+          >
             Sign in
           </Link>
         </p>
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
   )
 }
