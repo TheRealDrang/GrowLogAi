@@ -47,24 +47,36 @@ export default async function InvitePage({ params }: PageProps) {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Not logged in — show sign-in prompt
+  // Not logged in — detect whether the invited email already has an account
+  // so we can show the right primary action (sign in vs create account).
   if (!user) {
+    const { data: existingAuthUser } = await adminSupabase.auth.admin.getUserByEmail(invite.email)
+    const hasAccount = !!existingAuthUser?.user?.id
+    const signupUrl = `/signup?next=/invites/${token}&email=${encodeURIComponent(invite.email)}`
+
     return (
       <InviteShell>
         <InviteCard gardenName={gardenName} inviterName={inviterName} roleLabel={roleLabel}>
           <div className="space-y-3">
-            <Link
-              href={`/login?next=/invites/${token}`}
-              className="btn-primary w-full text-center block"
-            >
-              Sign in to join
-            </Link>
-            <Link
-              href={`/signup?next=/invites/${token}`}
-              className="btn-ghost w-full text-center block text-sm"
-            >
-              Create a free account →
-            </Link>
+            {hasAccount ? (
+              <>
+                <Link href={`/login?next=/invites/${token}`} className="btn-primary w-full text-center block">
+                  Sign in to join
+                </Link>
+                <Link href={signupUrl} className="btn-ghost w-full text-center block text-sm">
+                  Don&apos;t have an account? Create one →
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href={signupUrl} className="btn-primary w-full text-center block">
+                  Create your account to join
+                </Link>
+                <Link href={`/login?next=/invites/${token}`} className="btn-ghost w-full text-center block text-sm">
+                  Already have an account? Sign in →
+                </Link>
+              </>
+            )}
           </div>
         </InviteCard>
       </InviteShell>
