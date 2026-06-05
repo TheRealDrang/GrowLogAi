@@ -366,8 +366,8 @@ export async function generateAlerts(): Promise<AlertGenerationResult> {
           .join(' ')
           .toLowerCase()
 
-        if (daysSinceLast > 14)
-          alerts.push(buildAlert('no_checkin', garden, crop, {}))
+        // no_checkin alert removed — alerts should only fire for actionable awareness,
+        // not to nudge logging activity.
 
         if (mentionsPH(logText) && daysSinceLast > 14)
           alerts.push(buildAlert('followup_ph', garden, crop, {}))
