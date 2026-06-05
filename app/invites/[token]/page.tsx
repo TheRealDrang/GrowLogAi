@@ -47,36 +47,20 @@ export default async function InvitePage({ params }: PageProps) {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Not logged in — detect whether the invited email already has an account
-  // so we can show the right primary action (sign in vs create account).
+  // Not logged in — show create account as primary (most invite recipients are new users).
+  // Existing users can use the secondary sign-in link.
   if (!user) {
-    const { data: existingAuthUser } = await adminSupabase.auth.admin.getUserByEmail(invite.email)
-    const hasAccount = !!existingAuthUser?.user?.id
     const signupUrl = `/signup?next=/invites/${token}&email=${encodeURIComponent(invite.email)}`
-
     return (
       <InviteShell>
         <InviteCard gardenName={gardenName} inviterName={inviterName} roleLabel={roleLabel}>
           <div className="space-y-3">
-            {hasAccount ? (
-              <>
-                <Link href={`/login?next=/invites/${token}`} className="btn-primary w-full text-center block">
-                  Sign in to join
-                </Link>
-                <Link href={signupUrl} className="btn-ghost w-full text-center block text-sm">
-                  Don&apos;t have an account? Create one →
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link href={signupUrl} className="btn-primary w-full text-center block">
-                  Create your account to join
-                </Link>
-                <Link href={`/login?next=/invites/${token}`} className="btn-ghost w-full text-center block text-sm">
-                  Already have an account? Sign in →
-                </Link>
-              </>
-            )}
+            <Link href={signupUrl} className="btn-primary w-full text-center block">
+              Create your account to join
+            </Link>
+            <Link href={`/login?next=/invites/${token}`} className="btn-ghost w-full text-center block text-sm">
+              Already have an account? Sign in →
+            </Link>
           </div>
         </InviteCard>
       </InviteShell>
