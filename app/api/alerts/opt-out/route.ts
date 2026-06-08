@@ -7,9 +7,9 @@ import { NextRequest } from 'next/server'
 // which only supports GET requests.
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const userId = searchParams.get('token')
+  const token = searchParams.get('token')
 
-  if (!userId) {
+  if (!token) {
     return new Response('<html><body>Invalid unsubscribe link.</body></html>', {
       status: 400,
       headers: { 'Content-Type': 'text/html' },
@@ -17,10 +17,12 @@ export async function GET(request: NextRequest) {
   }
 
   const adminClient = createSupabaseAdminClient()
+  // Claude chose this approach because: looking up by unsubscribe_token (a random UUID)
+  // rather than user_id prevents anyone from unsubscribing arbitrary accounts by guessing IDs.
   await adminClient
     .from('profiles')
     .update({ digest_enabled: false })
-    .eq('id', userId)
+    .eq('unsubscribe_token', token)
 
   return new Response(
     `<!DOCTYPE html>

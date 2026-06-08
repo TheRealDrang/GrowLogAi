@@ -425,10 +425,12 @@ function buildDigestEmailHtml(
   alerts: Array<{ title: string; body: string; action_label: string | null; action_url: string | null; priority: number }>,
   remaining: number,
   displayName: string | null,
-  userId: string
+  unsubscribeToken: string
 ): string {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://growlogai.com'
-  const unsubscribeUrl = `${appUrl}/api/alerts/opt-out?token=${userId}`
+  // Claude chose unsubscribeToken rather than userId because: opaque UUID prevents someone from
+  // constructing a link that unsubscribes any account whose ID they know.
+  const unsubscribeUrl = `${appUrl}/api/alerts/opt-out?token=${unsubscribeToken}`
   const greeting = displayName ? `Hi ${displayName},` : 'Hi there,'
 
   const alertRows = alerts.map(a => {
@@ -535,10 +537,10 @@ export async function sendDigests(): Promise<DigestSendResult> {
 
   for (const user_id of userIds) {
     try {
-      // Check digest_enabled on profile
+      // Check digest_enabled on profile; also fetch unsubscribe_token for the email footer
       const { data: profile } = await adminClient
         .from('profiles')
-        .select('display_name, digest_enabled')
+        .select('display_name, digest_enabled, unsubscribe_token')
         .eq('id', user_id)
         .single()
       if (!profile?.digest_enabled) {
@@ -587,7 +589,7 @@ export async function sendDigests(): Promise<DigestSendResult> {
         from: 'GrowLog AI <alerts@growlogai.com>',
         to: user.email,
         subject: buildSubjectLine(alerts, profile.display_name),
-        html: buildDigestEmailHtml(top5, remaining > 0 ? remaining : 0, profile.display_name, user_id),
+        html: buildDigestEmailHtml(top5, remaining > 0 ? remaining : 0, profile.display_name, profile.unsubscribe_token ?? user_id),
       })
 
       await adminClient.from('digest_log').insert({

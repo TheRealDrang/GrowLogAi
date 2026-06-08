@@ -39,6 +39,10 @@ export async function POST(request: NextRequest) {
   if (!tooltip_id || typeof tooltip_id !== 'string') {
     return NextResponse.json({ error: 'tooltip_id is required' }, { status: 400 })
   }
+  // Validate format: lowercase alphanumeric + hyphens, max 50 chars
+  if (!/^[a-z0-9-]{1,50}$/.test(tooltip_id)) {
+    return NextResponse.json({ error: 'Invalid tooltip_id' }, { status: 400 })
+  }
 
   // Fetch the current dismissed list then append (avoids needing a custom RPC function)
   const { data: row } = await supabase

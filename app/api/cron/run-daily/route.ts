@@ -52,14 +52,23 @@ export async function GET(request: NextRequest) {
   const weatherLog = await runCronSection('logDailyWeatherForAllOwners', () =>
     logDailyWeatherForAllOwners(createSupabaseAdminClient())
   )
+  const inviteCleanup = await runCronSection('cleanupExpiredInvites', async () => {
+    const { count } = await createSupabaseAdminClient()
+      .from('garden_invites')
+      .delete({ count: 'exact' })
+      .lt('expires_at', new Date().toISOString())
+      .is('accepted_at', null)
+    return { deleted: count ?? 0 }
+  })
 
   return NextResponse.json({
-    ok: alerts.ok && digests.ok && weatherLog.ok,
+    ok: alerts.ok && digests.ok && weatherLog.ok && inviteCleanup.ok,
     durationMs: Date.now() - startedAt,
     sections: {
       alerts,
       digests,
       weatherLog,
+      inviteCleanup,
     },
   })
 }
