@@ -1,6 +1,9 @@
 import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase'
+import { isRateLimited } from '@/lib/rate-limit'
 import { Resend } from 'resend'
 import { NextRequest, NextResponse } from 'next/server'
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 // POST /api/gardens/[id]/invite
 // Body: { email: string, role: 'edit' | 'view' }
@@ -36,6 +39,21 @@ export async function POST(
   }
 
   const normalizedEmail = email.toLowerCase().trim()
+
+  if (!EMAIL_RE.test(normalizedEmail)) {
+    return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 })
+  }
+
+  // Rate limit: 20 invites per hour per owner
+  const limited = await isRateLimited(user.id, {
+    table: 'garden_invites',
+    userColumn: 'invited_by',
+    windowMinutes: 60,
+    maxRequests: 20,
+  })
+  if (limited) {
+    return NextResponse.json({ error: 'Too many invites sent recently — please try again later.' }, { status: 429 })
+  }
 
   // Get garden name and inviter display name for the email
   const [gardenResult, profileResult] = await Promise.all([

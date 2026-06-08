@@ -5,7 +5,14 @@ import { extractSessionLog, type SessionLog } from '@/lib/session-extractor'
 import { postToSheet } from '@/lib/sheet-logger'
 import { refreshAccessToken, appendToSheet, type SheetRowData } from '@/lib/google-sheets'
 import { getOrCreateGrowLogFolder, uploadImageToDrive, buildDriveFilename } from '@/lib/google-drive'
+import { isRateLimited } from '@/lib/rate-limit'
 import { after, NextRequest, NextResponse } from 'next/server'
+
+// ~7.5 MB raw — base64 overhead is ~4/3x so 10 M chars ≈ 7.5 MB unencoded
+const MAX_IMAGE_BASE64_LENGTH = 10_000_000
+
+// Max base64 string length (~7.5 MB raw image)
+const MAX_IMAGE_B64_LENGTH = 10_000_000
 
 const CHAT_HISTORY_LIMIT = 20
 
@@ -145,6 +152,23 @@ export async function POST(request: NextRequest) {
 
   if (!crop_id || (!message && !image)) {
     return NextResponse.json({ error: 'crop_id and message or image are required' }, { status: 400 })
+  }
+
+  // Reject oversized images before doing any DB work
+  if (image?.data && image.data.length > MAX_IMAGE_BASE64_LENGTH) {
+    return NextResponse.json({ error: 'Image is too large — please use a photo under 7 MB.' }, { status: 413 })
+  }
+
+  // Rate limit: 100 user messages per hour
+  const limited = await isRateLimited(user.id, {
+    table: 'conversations',
+    userColumn: 'created_by',
+    windowMinutes: 60,
+    maxRequests: 100,
+    extraFilters: { role: 'user' },
+  })
+  if (limited) {
+    return NextResponse.json({ error: 'Too many messages — please wait a bit and try again.' }, { status: 429 })
   }
 
   // Load crop + garden details — RLS verifies the user is a garden member
