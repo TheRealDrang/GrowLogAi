@@ -7,23 +7,9 @@ import { Resend } from 'resend'
 const RE_ALERT_DAYS: Record<string, number> = {
   weather_rain: 0, weather_dry: 0, weather_frost: 0,
   weather_mildew: 3, weather_wind: 0,
-  followup_ph: 21, followup_pest: 5, followup_fertilize: 14,
-  followup_transplant: 7, no_checkin: 7, harvest_approaching: 1,
+  followup_advisor: 3,  // Claude chose 3 days: short enough to stay relevant, long enough not to nag
+  no_checkin: 7, harvest_approaching: 1,
   ai_insight: 7,
-}
-
-// Keyword detection helpers — check combined observation + action_taken text
-function mentionsPH(text: string) {
-  return /\bph\b|acidity|alkalin|lime|sulfur|sulphur|acidic|alkaline/.test(text)
-}
-function mentionsPest(text: string) {
-  return /pest|aphid|slug|snail|caterpillar|bug|insect|worm|mite|scale|whitefly|thrip|beetle|moth|larva/.test(text)
-}
-function mentionsFertilize(text: string) {
-  return /fertili[sz]|feed|nitrogen|phosphorus|potassium|compost|manure|nutrient|feed/.test(text)
-}
-function mentionsTransplant(text: string) {
-  return /transplant|repot|moved|planted out|put in the ground|moved to bed/.test(text)
 }
 
 interface Garden {
@@ -43,6 +29,8 @@ interface Crop {
   session_logs?: Array<{
     observation: string | null
     action_taken: string | null
+    ai_advice: string | null
+    followup_days: number
     created_at: string
     log_date: string | null
   }>
@@ -100,7 +88,7 @@ function buildAlert(
     },
     weather_dry: {
       title: 'Dry stretch ahead',
-      body: `No rain forecast for 5+ days and temperatures are high. Prepare to water${cropName ? ` your ${cropName}` : ''} more frequently.`,
+      body: `No rain forecast for the next few days. Check soil moisture and prepare to water${cropName ? ` your ${cropName}` : ''} more frequently.`,
       action_label: 'Get watering tips',
       chat_context: 'The user is following up on a dry weather alert. Help them plan a watering schedule and conserve moisture in their garden.',
     },
@@ -128,29 +116,13 @@ function buildAlert(
       action_label: 'Log a session',
       chat_context: "The user hasn't checked in on this crop in a while. Ask how it's going and encourage them to log an observation.",
     },
-    followup_ph: {
-      title: 'Soil pH check overdue',
-      body: `It's been a while since you tested pH on${cropName ? ` your ${cropName}` : ' this crop'}. Time to retest.`,
-      action_label: 'Log pH reading',
-      chat_context: 'The user previously noted pH issues with this crop. Help them retest and adjust if needed.',
-    },
-    followup_pest: {
-      title: 'Pest follow-up needed',
-      body: `You treated${cropName ? ` your ${cropName}` : ' a crop'} for pests recently. Did it work? Check for signs of ongoing infestation.`,
-      action_label: 'Log pest check',
-      chat_context: 'The user recently treated this crop for pests. Help them assess whether the treatment was effective and what to do next.',
-    },
-    followup_fertilize: {
-      title: 'Feeding due',
-      body: `It's been a while since you last fed${cropName ? ` your ${cropName}` : ' this crop'}. Consider another feeding.`,
-      action_label: 'Log fertilizing',
-      chat_context: 'The user previously fertilized this crop. Help them decide if and how to feed it again.',
-    },
-    followup_transplant: {
-      title: 'Transplant check',
-      body: `You transplanted${cropName ? ` your ${cropName}` : ' a crop'} a few days ago. Check for wilting or transplant shock.`,
-      action_label: 'Log transplant check',
-      chat_context: 'The user recently transplanted this crop. Help them assess how it is settling in and what to watch for.',
+    followup_advisor: {
+      // Claude chose this approach because: the body and chat_context are always set by
+      // the caller using the actual ai_advice text — this template is a fallback only.
+      title: `Time to check in on your ${cropName || 'crop'}`,
+      body: overrides.body ?? `Your advisor had a recommendation for this crop. Log how it went.`,
+      action_label: 'Log a session',
+      chat_context: overrides.chat_context ?? `The advisor gave specific advice for this crop that the user should follow up on. Ask how things went.`,
     },
     harvest_approaching: {
       title: 'Harvest approaching',
@@ -322,9 +294,17 @@ export async function generateAlerts(): Promise<AlertGenerationResult> {
 
       if (!garden?.latitude || !garden?.longitude) continue
 
+      // Clean up any active legacy keyword-based alerts — these are replaced by followup_advisor
+      await adminClient
+        .from('garden_alerts')
+        .update({ status: 'expired' })
+        .in('alert_type', ['followup_pest', 'followup_ph', 'followup_fertilize', 'followup_transplant'])
+        .eq('user_id', user_id)
+        .eq('status', 'active')
+
       const { data: crops } = await adminClient
         .from('crops')
-        .select('id, name, variety, harvest_date, session_logs(observation, action_taken, created_at, log_date)')
+        .select('id, name, variety, harvest_date, session_logs(observation, action_taken, ai_advice, followup_days, created_at, log_date)')
         .eq('garden_id', garden_id)
         .eq('status', 'growing')
         .order('created_at', { referencedTable: 'session_logs', ascending: false })
@@ -335,10 +315,15 @@ export async function generateAlerts(): Promise<AlertGenerationResult> {
 
       // === Category A: Weather alerts ===
       if (forecast) {
-        if (forecast.dailyRainMm[0] > 5 || forecast.dailyRainMm[1] > 5)
+        // Claude chose 3mm threshold because: light rain (2-4mm) still means skip watering;
+        // the previous 5mm threshold missed moderate rain events common in the Northeast
+        if (forecast.dailyRainMm[0] > 3 || forecast.dailyRainMm[1] > 3)
           alerts.push(buildAlert('weather_rain', garden, null, { expires_in_hours: 36 }))
 
-        if (forecast.dailyRainMm.slice(0, 5).every(mm => mm < 1) && forecast.dailyMaxTemp[0] > 25)
+        // Claude chose to remove the >25°C temp condition because: the previous condition
+        // required both no rain AND high heat, so dry stretches in cooler weather never triggered.
+        // Any 3-day rain-free stretch is worth a watering reminder regardless of temperature.
+        if (forecast.dailyRainMm.every(mm => mm < 1))
           alerts.push(buildAlert('weather_dry', garden, null, { expires_in_hours: 72 }))
 
         if (forecast.dailyMinTemp[0] < 2 || forecast.dailyMinTemp[1] < 2)
@@ -354,32 +339,29 @@ export async function generateAlerts(): Promise<AlertGenerationResult> {
           alerts.push(buildAlert('weather_wind', garden, null, { expires_in_hours: 48 }))
       }
 
-      // === Category B: Crop follow-up alerts ===
+      // === Category B: Advisor follow-up alerts ===
+      // Claude chose this approach because: only the advisor knows when follow-up is needed.
+      // Keyword scanning produced false positives. Now the advisor sets followup_days directly
+      // in its structured JSON output when it recommends a specific action.
       for (const crop of crops ?? []) {
         const logs = (crop.session_logs as Crop['session_logs']) ?? []
         const lastLog = logs[0]
-        const daysSinceLast = lastLog
-          ? (Date.now() - new Date(lastLog.created_at).getTime()) / 86400000
-          : Infinity
-        const logText = logs
-          .map(l => `${l.observation ?? ''} ${l.action_taken ?? ''}`)
-          .join(' ')
-          .toLowerCase()
 
-        // no_checkin alert removed — alerts should only fire for actionable awareness,
-        // not to nudge logging activity.
-
-        if (mentionsPH(logText) && daysSinceLast > 14)
-          alerts.push(buildAlert('followup_ph', garden, crop, {}))
-
-        if (mentionsPest(logText) && daysSinceLast > 5)
-          alerts.push(buildAlert('followup_pest', garden, crop, { priority: 1 }))
-
-        if (mentionsFertilize(logText) && daysSinceLast > 21)
-          alerts.push(buildAlert('followup_fertilize', garden, crop, {}))
-
-        if (mentionsTransplant(logText) && daysSinceLast >= 3 && daysSinceLast <= 7)
-          alerts.push(buildAlert('followup_transplant', garden, crop, {}))
+        // followup_advisor fires when:
+        // 1. The most recent session log has followup_days > 0 (advisor flagged a follow-up)
+        // 2. That many days have passed since the session
+        // 3. The user hasn't logged a new session since (which would push this log off logs[0])
+        if (lastLog && (lastLog.followup_days ?? 0) > 0 && lastLog.ai_advice) {
+          const daysSince = (Date.now() - new Date(lastLog.created_at).getTime()) / 86400000
+          if (daysSince >= lastLog.followup_days) {
+            const daysAgo = Math.floor(daysSince)
+            alerts.push(buildAlert('followup_advisor', garden, crop, {
+              priority: 1,
+              body: `${daysAgo} day${daysAgo !== 1 ? 's' : ''} ago your advisor said: "${lastLog.ai_advice}" — how did it go?`,
+              chat_context: `The user received this advice ${daysAgo} days ago for their ${crop.name}: "${lastLog.ai_advice}". Ask them whether they took action and how the crop has responded since.`,
+            }))
+          }
+        }
 
         if (crop.harvest_date) {
           const daysUntil = (new Date(crop.harvest_date).getTime() - Date.now()) / 86400000

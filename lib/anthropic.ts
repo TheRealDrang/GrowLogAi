@@ -205,12 +205,18 @@ After your main advice, append a JSON block exactly like this (the app strips it
     "action_taken": "one sentence summary of what the user said they did or plan to do",
     "ai_advice": "one sentence core recommendation you gave",
     "weather_summary": "${weather ? `${weather.temperature}°C, ${weather.description}, mildew risk ${weather.mildewRisk}` : 'no weather data'}",
-    "confidence": "high|medium|low"
+    "confidence": "high|medium|low",
+    "followup_days": 0
   }
 }
 \`\`\`
 
-Fill in each field based on the conversation. Set confidence to the level you assessed before responding. If a field has no applicable content, use an empty string.`
+Fill in each field based on the conversation. Set confidence to the level you assessed before responding. If a field has no applicable content, use an empty string.
+
+**followup_days rules** — set this to the number of days before the user should check back in:
+- Set to a number (1–14) only when you recommended a **specific action** the user should take and the result needs to be assessed (e.g., pest treatment: 5, transplant shock check: 3, soil amendment results: 14, disease spread check: 4).
+- Set to 0 for general questions, watering reminders, general tips, or any response where no concrete follow-up is needed.
+- When set above 0, the app will send the user a reminder at that time using your ai_advice text — so make ai_advice a clear, self-contained reminder of what to do or check.`
 }
 
 // Trim conversation history to last 6 messages

@@ -340,6 +340,7 @@ export async function POST(request: NextRequest) {
               action_taken: log.action_taken,
               ai_advice: log.ai_advice,
               weather_summary: log.weather_summary,
+              followup_days: log.followup_days ?? 0,
               sheet_posted: false,
               raw_json: log,
               full_response: cleanText,
