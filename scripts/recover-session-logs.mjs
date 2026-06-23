@@ -51,6 +51,8 @@ if (!supabaseUrl || !serviceKey || !anthropicKey) {
 const supabase = createClient(supabaseUrl, serviceKey)
 const anthropic = new Anthropic({ apiKey: anthropicKey })
 
+const AUTO_YES = process.argv.includes('--yes')
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function prompt(question) {
@@ -64,6 +66,7 @@ async function prompt(question) {
 }
 
 async function confirm(question) {
+  if (AUTO_YES) { console.log(question + ' (y/n): y'); return true }
   const answer = await prompt(question + ' (y/n): ')
   return answer.toLowerCase().startsWith('y')
 }
