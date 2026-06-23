@@ -328,7 +328,7 @@ export async function POST(request: NextRequest) {
         // Insert session log row
         let sessionLogId: string | null = null
         if (log) {
-          const { data: logRow } = await supabase
+          const { data: logRow, error: logError } = await supabase
             .from('session_logs')
             .insert({
               crop_id,
@@ -348,6 +348,9 @@ export async function POST(request: NextRequest) {
             .select('id')
             .single()
 
+          if (logError) {
+            console.error('[session_log insert error]', logError.message, logError.code, logError.details)
+          }
           sessionLogId = logRow?.id ?? null
         }
 
