@@ -53,7 +53,7 @@ export default async function DashboardPage() {
   const now = new Date().toISOString()
   const { data: alertData } = await supabase
     .from('garden_alerts')
-    .select('id, alert_type, priority, title, body, action_label, action_url, gardens(name), crops(name)')
+    .select('id, alert_type, priority, title, body, action_label, action_url, generated_at, gardens(name), crops(name)')
     .eq('status', 'active')
     .or(`expires_at.is.null,expires_at.gt.${now}`)
     .order('priority')
