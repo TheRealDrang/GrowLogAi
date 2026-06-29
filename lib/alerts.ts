@@ -381,6 +381,23 @@ export async function generateAlerts(): Promise<AlertGenerationResult> {
         }
       }
 
+      // Expire any active weather alerts whose condition is no longer true this run.
+      // Without this, a rain alert from yesterday stays active alongside today's dry alert.
+      const ALL_WEATHER_TYPES = ['weather_rain', 'weather_dry', 'weather_frost', 'weather_mildew', 'weather_wind']
+      const generatedWeatherTypes = new Set(
+        alerts.filter(a => a.alert_type.startsWith('weather_')).map(a => a.alert_type)
+      )
+      const staleWeatherTypes = ALL_WEATHER_TYPES.filter(t => !generatedWeatherTypes.has(t))
+      if (staleWeatherTypes.length > 0) {
+        await adminClient
+          .from('garden_alerts')
+          .update({ status: 'expired' })
+          .eq('user_id', user_id)
+          .eq('garden_id', garden.id)
+          .in('alert_type', staleWeatherTypes)
+          .eq('status', 'active')
+      }
+
       // Upsert all generated alerts
       for (const alert of alerts) {
         await upsertAlert(adminClient, user_id, alert)
