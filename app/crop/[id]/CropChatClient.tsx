@@ -93,7 +93,11 @@ function getStarters(cropName: string, sowDate: string | null | undefined): stri
 }
 
 export default function CropChatClient({ cropId, initialHistory, sessionLogs, cropName, sowDate, currentUserDisplayName, alertContext }: Props) {
-  const [messages, setMessages] = useState<Message[]>(initialHistory)
+  const [messages, setMessages] = useState<Message[]>(
+    initialHistory.map(m =>
+      m.role === 'assistant' ? { ...m, content: stripJsonBlock(m.content) } : m
+    )
+  )
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [streamBuffer, setStreamBuffer] = useState('')

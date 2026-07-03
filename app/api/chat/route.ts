@@ -277,8 +277,8 @@ export async function POST(request: NextRequest) {
 
   // Stream response from Anthropic
   const stream = anthropic.messages.stream({
-    model: process.env.ANTHROPIC_CHAT_MODEL ?? 'claude-haiku-4-5-20251001',
-    max_tokens: 1024,
+    model: process.env.ANTHROPIC_CHAT_MODEL ?? 'claude-sonnet-5',
+    max_tokens: 4096,
     system: systemPrompt,
     messages: [
       ...history.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
