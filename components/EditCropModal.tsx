@@ -106,9 +106,12 @@ export default function EditCropModal({ crop, gardenId }: Props) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/40 px-0 sm:px-4">
+          {/* flex-col + max-h lets header/footer stay fixed while only the body scrolls */}
           <div className="bg-parchment w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-xl
-                          max-h-[80vh] overflow-y-auto">
-            <div className="px-6 pt-6 pb-2 border-b border-sage/20">
+                          flex flex-col max-h-[85vh]">
+
+            {/* Fixed header */}
+            <div className="flex-shrink-0 px-6 pt-6 pb-2 border-b border-sage/20">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="font-serif text-xl text-soil">Edit crop</h2>
                 <button
@@ -124,85 +127,124 @@ export default function EditCropModal({ crop, gardenId }: Props) {
               </div>
             </div>
 
-            <form onSubmit={handleSave} className="px-6 py-5 space-y-4">
-              <div>
-                <label className="label">Crop name</label>
-                <input
-                  required
-                  value={form.name}
-                  onChange={e => set('name', e.target.value)}
-                  className="input"
-                />
-              </div>
-
-              <div>
-                <label className="label">Variety</label>
-                <input
-                  value={form.variety}
-                  onChange={e => set('variety', e.target.value)}
-                  className="input"
-                  placeholder="e.g. Sungold, Brandywine"
-                />
-              </div>
-
-              <div>
-                <label className="label">Bed / Location</label>
-                <BedLocationPicker gardenId={gardenId} value={form.bed_location} onChange={v => set('bed_location', v)} />
-              </div>
-
-              <div>
-                <label className="label">Sow date</label>
-                <input
-                  type="date"
-                  value={form.sow_date}
-                  onChange={e => set('sow_date', e.target.value)}
-                  className="input"
-                />
-              </div>
-
-              <div>
-                <label className="label">Status</label>
-                <select
-                  value={form.status}
-                  onChange={e => set('status', e.target.value)}
-                  className="input"
-                >
-                  {STATUS_OPTIONS.map(o => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {form.status !== 'growing' && (
+            <form onSubmit={handleSave} className="flex flex-col flex-1 min-h-0">
+              {/* Scrollable body */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
                 <div>
-                  <label className="label">End date</label>
+                  <label className="label">Crop name</label>
                   <input
-                    type="date"
-                    value={form.end_date}
-                    onChange={e => set('end_date', e.target.value)}
+                    required
+                    value={form.name}
+                    onChange={e => set('name', e.target.value)}
                     className="input"
                   />
                 </div>
-              )}
 
-              <div>
-                <label className="label">Notes</label>
-                <textarea
-                  value={form.notes}
-                  onChange={e => set('notes', e.target.value)}
-                  rows={3}
-                  className="input resize-none"
-                  placeholder="Observations, reminders, anything useful…"
-                />
-              </div>
+                <div>
+                  <label className="label">Variety</label>
+                  <input
+                    value={form.variety}
+                    onChange={e => set('variety', e.target.value)}
+                    className="input"
+                    placeholder="e.g. Sungold, Brandywine"
+                  />
+                </div>
 
-              {error && (
-                <p className="text-harvest text-sm bg-harvest/8 border border-harvest/20 rounded-xl px-4 py-2">
-                  {error}
-                </p>
-              )}
+                <div>
+                  <label className="label">Bed / Location</label>
+                  <BedLocationPicker gardenId={gardenId} value={form.bed_location} onChange={v => set('bed_location', v)} />
+                </div>
 
-              <div className="flex gap-3 pt-2 pb-1">
+                <div>
+                  <label className="label">Sow date</label>
+                  <input
+                    type="date"
+                    value={form.sow_date}
+                    onChange={e => set('sow_date', e.target.value)}
+                    className="input"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Status</label>
+                  <select
+                    value={form.status}
+                    onChange={e => set('status', e.target.value)}
+                    className="input"
+                  >
+                    {STATUS_OPTIONS.map(o => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {form.status !== 'growing' && (
+                  <div>
+                    <label className="label">End date</label>
+                    <input
+                      type="date"
+                      value={form.end_date}
+                      onChange={e => set('end_date', e.target.value)}
+                      className="input"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="label">Notes</label>
+                  <textarea
+                    value={form.notes}
+                    onChange={e => set('notes', e.target.value)}
+                    rows={3}
+                    className="input resize-none"
+                    placeholder="Observations, reminders, anything useful…"
+                  />
+                </div>
+
+                {error && (
+                  <p className="text-harvest text-sm bg-harvest/8 border border-harvest/20 rounded-xl px-4 py-2">
+                    {error}
+                  </p>
+                )}
+
+                <div className="border-t border-sage/20 pt-4 pb-2">
+                  {!confirmDelete ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(true)}
+                      className="text-sm font-sans text-harvest hover:text-harvest/80 border border-harvest/20 hover:border-harvest/40 rounded-xl px-4 py-2.5 transition-colors"
+                    >
+                      Delete crop
+                    </button>
+                  ) : (
+                    <div className="bg-harvest/8 border border-harvest/20 rounded-xl px-4 py-4 space-y-3">
+                      <p className="text-sm font-sans text-soil">
+                        Delete <strong>{crop.name}</strong>? This will permanently remove the crop and all its chat history.
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDelete(false)}
+                          className="btn-ghost text-sm flex-1"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleDelete}
+                          disabled={deleting}
+                          className="text-sm font-sans text-parchment bg-harvest hover:bg-harvest/90 rounded-xl px-4 py-2.5 flex-1 disabled:opacity-50 transition-colors"
+                        >
+                          {deleting ? 'Deleting…' : 'Yes, delete'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>{/* end scrollable body */}
+
+              {/* Fixed footer — always visible */}
+              <div className="flex-shrink-0 flex gap-3 px-6 py-4 border-t border-sage/20">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
@@ -217,41 +259,6 @@ export default function EditCropModal({ crop, gardenId }: Props) {
                 >
                   {saving ? 'Saving…' : 'Save changes'}
                 </button>
-              </div>
-
-              <div className="border-t border-sage/20 pt-4">
-                {!confirmDelete ? (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete(true)}
-                    className="text-sm font-sans text-harvest hover:text-harvest/80 border border-harvest/20 hover:border-harvest/40 rounded-xl px-4 py-2.5 transition-colors"
-                  >
-                    Delete crop
-                  </button>
-                ) : (
-                  <div className="bg-harvest/8 border border-harvest/20 rounded-xl px-4 py-4 space-y-3">
-                    <p className="text-sm font-sans text-soil">
-                      Delete <strong>{crop.name}</strong>? This will permanently remove the crop and all its chat history.
-                    </p>
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDelete(false)}
-                        className="btn-ghost text-sm flex-1"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDelete}
-                        disabled={deleting}
-                        className="text-sm font-sans text-parchment bg-harvest hover:bg-harvest/90 rounded-xl px-4 py-2.5 flex-1 disabled:opacity-50 transition-colors"
-                      >
-                        {deleting ? 'Deleting…' : 'Yes, delete'}
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             </form>
           </div>
