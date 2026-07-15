@@ -99,7 +99,7 @@ export default function WrapUpCropModal({ cropId, cropName, status }: Props) {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/40 px-0 sm:px-4">
           {/* flex-col + max-h lets header/footer stay fixed while only the body scrolls */}
           <div className="bg-parchment w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl
-                          flex flex-col max-h-[85vh]">
+                          flex flex-col max-h-[85vh] overflow-hidden">
 
             {/* Fixed header */}
             <div className="flex-shrink-0 px-6 pt-6 pb-2 border-b border-sage/20">
