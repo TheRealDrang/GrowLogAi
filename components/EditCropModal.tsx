@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import BedLocationPicker from '@/components/BedLocationPicker'
 
@@ -29,6 +30,8 @@ const STATUS_OPTIONS = [
 
 export default function EditCropModal({ crop, gardenId }: Props) {
   const router = useRouter()
+
+  const [mounted, setMounted] = useState(false)
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
     name:         crop.name,
@@ -43,6 +46,11 @@ export default function EditCropModal({ crop, gardenId }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // Claude chose createPortal because: the crop page has overflow-hidden on its
+  // root div, which clips fixed-position children on iOS Safari. Portalling to
+  // document.body escapes that boundary entirely.
+  useEffect(() => setMounted(true), [])
 
   function set(key: string, value: string) {
     setForm(f => ({ ...f, [key]: value }))
@@ -104,11 +112,9 @@ export default function EditCropModal({ crop, gardenId }: Props) {
         Edit crop
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/40 px-0 sm:px-4">
-          {/* flex-col + max-h lets header/footer stay fixed while only the body scrolls */}
-          <div className="bg-parchment w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-xl
-                          flex flex-col max-h-[85vh]">
+      {mounted && open && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
+          <div className="bg-parchment w-full max-w-md rounded-2xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden">
 
             {/* Fixed header */}
             <div className="flex-shrink-0 px-6 pt-6 pb-2 border-b border-sage/20">
@@ -241,9 +247,9 @@ export default function EditCropModal({ crop, gardenId }: Props) {
                     </div>
                   )}
                 </div>
-              </div>{/* end scrollable body */}
+              </div>
 
-              {/* Fixed footer — always visible */}
+              {/* Fixed footer */}
               <div className="flex-shrink-0 flex gap-3 px-6 py-4 border-t border-sage/20">
                 <button
                   type="button"
@@ -262,7 +268,8 @@ export default function EditCropModal({ crop, gardenId }: Props) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 
 interface Props {
@@ -23,11 +24,17 @@ export default function WrapUpCropModal({ cropId, cropName, status }: Props) {
   const router = useRouter()
   const isActive = status === 'growing'
 
+  const [mounted, setMounted] = useState(false)
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('harvested')
   const [endDate, setEndDate] = useState(todayISO)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Claude chose createPortal because: the crop page has overflow-hidden on its
+  // root div, which clips fixed-position children on iOS Safari. Portalling to
+  // document.body escapes that boundary entirely.
+  useEffect(() => setMounted(true), [])
 
   async function handleWrapUp(e: React.FormEvent) {
     e.preventDefault()
@@ -95,14 +102,12 @@ export default function WrapUpCropModal({ cropId, cropName, status }: Props) {
         Wrap up
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/40 px-0 sm:px-4">
-          {/* flex-col + max-h lets header/footer stay fixed while only the body scrolls */}
-          <div className="bg-parchment w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl
-                          flex flex-col max-h-[85vh]">
+      {mounted && open && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
+          <div className="bg-parchment w-full max-w-sm rounded-2xl shadow-xl flex flex-col max-h-[85vh] overflow-hidden">
 
             {/* Fixed header */}
-            <div className="flex-shrink-0 px-6 pt-6 pb-2 border-b border-sage/20">
+            <div className="flex-shrink-0 px-6 pt-6 pb-3 border-b border-sage/20">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h2 className="font-serif text-xl text-soil">Wrap up {cropName}</h2>
@@ -155,9 +160,9 @@ export default function WrapUpCropModal({ cropId, cropName, status }: Props) {
                     {error}
                   </p>
                 )}
-              </div>{/* end scrollable body */}
+              </div>
 
-              {/* Fixed footer — always visible */}
+              {/* Fixed footer */}
               <div className="flex-shrink-0 flex gap-3 px-6 py-4 border-t border-sage/20">
                 <button
                   type="button"
@@ -176,7 +181,8 @@ export default function WrapUpCropModal({ cropId, cropName, status }: Props) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )
