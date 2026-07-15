@@ -7,6 +7,7 @@ interface Props {
     variety?: string | null
     bed_location?: string | null
     sow_date?: string | null
+    end_date?: string | null
     status: string
   }
 }
@@ -19,11 +20,18 @@ const STATUS_CONFIG: Record<string, { label: string; dot: string; border: string
   growing:   { label: 'Growing',   dot: 'bg-moss',    border: 'border-l-moss' },
   harvested: { label: 'Harvested', dot: 'bg-harvest', border: 'border-l-harvest' },
   failed:    { label: 'Failed',    dot: 'bg-soil/50', border: 'border-l-soil/40' },
+  removed:   { label: 'Removed',   dot: 'bg-bark/40', border: 'border-l-bark/30' },
+}
+
+function formatEndDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 export default function CropCard({ crop }: Props) {
   const cfg = STATUS_CONFIG[crop.status] ?? STATUS_CONFIG.growing
-  const days = crop.sow_date ? daysSince(crop.sow_date) : null
+  const isActive = crop.status === 'growing'
+  const days = isActive && crop.sow_date ? daysSince(crop.sow_date) : null
 
   return (
     <Link
@@ -55,7 +63,9 @@ export default function CropCard({ crop }: Props) {
           ) : (
             <span />
           )}
-          {days !== null ? (
+          {crop.end_date ? (
+            <span className="font-mono text-xs text-bark/60">Ended {formatEndDate(crop.end_date)}</span>
+          ) : days !== null ? (
             <span className="font-mono text-xs text-bark/60">Day {days}</span>
           ) : null}
         </div>

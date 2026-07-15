@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import CropChatClient from './CropChatClient'
 import EditCropModal from '@/components/EditCropModal'
+import WrapUpCropModal from '@/components/WrapUpCropModal'
 
 const INITIAL_HISTORY_LIMIT = 50
 
@@ -102,20 +103,23 @@ export default async function CropPage({
             )}
           </div>
 
-          <div className="hidden sm:flex items-center gap-2">
-            <a
-              href="https://www.notion.so/GrowLog-AI-Knowledge-Base-36dcc739f5188098b8fcfe6b47be706b"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-parchment/70 hover:text-parchment transition-colors"
-              title="Knowledge Base"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-                <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 16v-4M12 8h.01" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </a>
-            <EditCropModal crop={crop} gardenId={garden.id} />
+          <div className="flex items-center gap-2">
+            <WrapUpCropModal cropId={crop.id} cropName={crop.name} status={crop.status} />
+            <div className="hidden sm:flex items-center gap-2">
+              <a
+                href="https://www.notion.so/GrowLog-AI-Knowledge-Base-36dcc739f5188098b8fcfe6b47be706b"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-parchment/70 hover:text-parchment transition-colors"
+                title="Knowledge Base"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
+                  <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M12 16v-4M12 8h.01" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </a>
+              <EditCropModal crop={crop} gardenId={garden.id} />
+            </div>
           </div>
         </div>
       </header>

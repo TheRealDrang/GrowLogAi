@@ -25,7 +25,6 @@ interface Crop {
   id: string
   name: string
   variety?: string | null
-  harvest_date?: string | null
   session_logs?: Array<{
     observation: string | null
     action_taken: string | null
@@ -304,7 +303,7 @@ export async function generateAlerts(): Promise<AlertGenerationResult> {
 
       const { data: crops } = await adminClient
         .from('crops')
-        .select('id, name, variety, harvest_date, session_logs(observation, action_taken, ai_advice, followup_days, created_at, log_date)')
+        .select('id, name, variety, session_logs(observation, action_taken, ai_advice, followup_days, created_at, log_date)')
         .eq('garden_id', garden_id)
         .eq('status', 'growing')
         .order('created_at', { referencedTable: 'session_logs', ascending: false })
@@ -363,11 +362,6 @@ export async function generateAlerts(): Promise<AlertGenerationResult> {
           }
         }
 
-        if (crop.harvest_date) {
-          const daysUntil = (new Date(crop.harvest_date).getTime() - Date.now()) / 86400000
-          if (daysUntil >= 0 && daysUntil < 7)
-            alerts.push(buildAlert('harvest_approaching', garden, crop, { priority: 1 }))
-        }
       }
 
       // === Category C: Weekly AI insight (Mondays only) ===

@@ -29,6 +29,17 @@ export default async function GardenPage({ params }: { params: Promise<{ id: str
 
   const cropCount = crops?.length ?? 0
 
+  // Split into active and completed groups; completed sorted newest sow_date first
+  const activeCrops = (crops ?? []).filter(c => c.status === 'growing')
+  const completedCrops = (crops ?? [])
+    .filter(c => c.status !== 'growing')
+    .sort((a, b) => {
+      if (!a.sow_date && !b.sow_date) return 0
+      if (!a.sow_date) return 1
+      if (!b.sow_date) return -1
+      return b.sow_date.localeCompare(a.sow_date)
+    })
+
   return (
     <div className="min-h-screen bg-straw flex flex-col pb-24 md:pb-0">
       {/* Sticky header */}
@@ -86,7 +97,7 @@ export default async function GardenPage({ params }: { params: Promise<{ id: str
           }
         </div>
 
-        {(!crops || crops.length === 0) ? (
+        {activeCrops.length === 0 && completedCrops.length === 0 ? (
           <div className="card p-12 text-center">
             <div className="w-16 h-16 bg-sage/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"
@@ -107,11 +118,40 @@ export default async function GardenPage({ params }: { params: Promise<{ id: str
             </div>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {crops.map((crop) => (
-              <CropCard key={crop.id} crop={crop} />
-            ))}
-          </div>
+          <>
+            {activeCrops.length > 0 && (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {activeCrops.map((crop) => (
+                  <CropCard key={crop.id} crop={crop} />
+                ))}
+              </div>
+            )}
+
+            {activeCrops.length === 0 && (
+              <p className="text-bark text-sm font-sans">No active crops — add one above.</p>
+            )}
+
+            {completedCrops.length > 0 && (
+              <details className="mt-8 group">
+                <summary className="flex items-center gap-2 cursor-pointer list-none select-none">
+                  <svg
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    className="w-4 h-4 text-bark/50 transition-transform group-open:rotate-90"
+                  >
+                    <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span className="font-serif text-base text-bark">
+                    Completed ({completedCrops.length})
+                  </span>
+                </summary>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4 opacity-70">
+                  {completedCrops.map((crop) => (
+                    <CropCard key={crop.id} crop={crop} />
+                  ))}
+                </div>
+              </details>
+            )}
+          </>
         )}
       </main>
 

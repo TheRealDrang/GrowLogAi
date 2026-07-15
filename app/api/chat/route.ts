@@ -263,6 +263,7 @@ export async function POST(request: NextRequest) {
       variety: crop.variety,
       bedLocation: crop.bed_location,
       sowDate: crop.sow_date,
+      endDate: crop.end_date,
       status: crop.status,
       notes: crop.notes,
     },

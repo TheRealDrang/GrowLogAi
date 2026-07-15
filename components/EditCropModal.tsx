@@ -10,6 +10,7 @@ interface Crop {
   variety?: string | null
   bed_location?: string | null
   sow_date?: string | null
+  end_date?: string | null
   status: string
   notes?: string | null
 }
@@ -23,6 +24,7 @@ const STATUS_OPTIONS = [
   { value: 'growing',   label: 'Growing' },
   { value: 'harvested', label: 'Harvested' },
   { value: 'failed',    label: 'Failed' },
+  { value: 'removed',   label: 'Removed' },
 ]
 
 export default function EditCropModal({ crop, gardenId }: Props) {
@@ -33,6 +35,7 @@ export default function EditCropModal({ crop, gardenId }: Props) {
     variety:      crop.variety ?? '',
     bed_location: crop.bed_location ?? '',
     sow_date:     crop.sow_date ?? '',
+    end_date:     crop.end_date ?? '',
     status:       crop.status,
     notes:        crop.notes ?? '',
   })
@@ -59,6 +62,7 @@ export default function EditCropModal({ crop, gardenId }: Props) {
         variety:      form.variety.trim() || null,
         bed_location: form.bed_location.trim() || null,
         sow_date:     form.sow_date || null,
+        end_date:     form.end_date || null,
         status:       form.status,
         notes:        form.notes.trim() || null,
       }),
@@ -156,6 +160,18 @@ export default function EditCropModal({ crop, gardenId }: Props) {
                   ))}
                 </select>
               </div>
+
+              {form.status !== 'growing' && (
+                <div>
+                  <label className="label">End date</label>
+                  <input
+                    type="date"
+                    value={form.end_date}
+                    onChange={e => set('end_date', e.target.value)}
+                    className="input"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="label">Notes</label>
