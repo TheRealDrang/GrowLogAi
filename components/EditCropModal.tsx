@@ -98,7 +98,7 @@ export default function EditCropModal({ crop, gardenId }: Props) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-sm font-sans text-bark hover:text-soil border border-sage/40 hover:border-sage
+        className="text-sm font-sans text-parchment/80 hover:text-parchment border border-parchment/30 hover:border-parchment/60
                    px-3 py-1.5 rounded-lg transition-colors"
       >
         Edit crop
