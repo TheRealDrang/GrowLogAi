@@ -97,9 +97,12 @@ export default function WrapUpCropModal({ cropId, cropName, status }: Props) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/40 px-0 sm:px-4">
+          {/* flex-col + max-h lets header/footer stay fixed while only the body scrolls */}
           <div className="bg-parchment w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl
-                          max-h-[80vh] overflow-y-auto">
-            <div className="px-6 pt-6 pb-2 border-b border-sage/20">
+                          flex flex-col max-h-[85vh]">
+
+            {/* Fixed header */}
+            <div className="flex-shrink-0 px-6 pt-6 pb-2 border-b border-sage/20">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h2 className="font-serif text-xl text-soil">Wrap up {cropName}</h2>
@@ -120,38 +123,42 @@ export default function WrapUpCropModal({ cropId, cropName, status }: Props) {
               </div>
             </div>
 
-            <form onSubmit={handleWrapUp} className="px-6 py-5 space-y-4">
-              <div>
-                <label className="label">Reason</label>
-                <select
-                  value={reason}
-                  onChange={e => setReason(e.target.value)}
-                  className="input"
-                >
-                  {REASON_OPTIONS.map(o => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
+            <form onSubmit={handleWrapUp} className="flex flex-col flex-1 min-h-0">
+              {/* Scrollable body */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                <div>
+                  <label className="label">Reason</label>
+                  <select
+                    value={reason}
+                    onChange={e => setReason(e.target.value)}
+                    className="input"
+                  >
+                    {REASON_OPTIONS.map(o => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="label">End date</label>
-                <input
-                  type="date"
-                  required
-                  value={endDate}
-                  onChange={e => setEndDate(e.target.value)}
-                  className="input"
-                />
-              </div>
+                <div>
+                  <label className="label">End date</label>
+                  <input
+                    type="date"
+                    required
+                    value={endDate}
+                    onChange={e => setEndDate(e.target.value)}
+                    className="input"
+                  />
+                </div>
 
-              {error && (
-                <p className="text-harvest text-sm bg-harvest/8 border border-harvest/20 rounded-xl px-4 py-2">
-                  {error}
-                </p>
-              )}
+                {error && (
+                  <p className="text-harvest text-sm bg-harvest/8 border border-harvest/20 rounded-xl px-4 py-2">
+                    {error}
+                  </p>
+                )}
+              </div>{/* end scrollable body */}
 
-              <div className="flex gap-3 pt-2 pb-1">
+              {/* Fixed footer — always visible */}
+              <div className="flex-shrink-0 flex gap-3 px-6 py-4 border-t border-sage/20">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
