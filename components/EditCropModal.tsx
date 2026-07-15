@@ -107,9 +107,21 @@ export default function EditCropModal({ crop, gardenId }: Props) {
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/40 px-0 sm:px-4">
           <div className="bg-parchment w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-xl
-                          max-h-[90vh] overflow-y-auto">
+                          max-h-[80vh] overflow-y-auto">
             <div className="px-6 pt-6 pb-2 border-b border-sage/20">
-              <h2 className="font-serif text-xl text-soil">Edit crop</h2>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-serif text-xl text-soil">Edit crop</h2>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="flex-shrink-0 text-bark/50 hover:text-soil transition-colors"
+                  aria-label="Close"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                    <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <form onSubmit={handleSave} className="px-6 py-5 space-y-4">
