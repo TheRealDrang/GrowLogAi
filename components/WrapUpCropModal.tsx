@@ -97,12 +97,27 @@ export default function WrapUpCropModal({ cropId, cropName, status }: Props) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/40 px-0 sm:px-4">
-          <div className="bg-parchment w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl">
+          <div className="bg-parchment w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl
+                          max-h-[80vh] overflow-y-auto">
             <div className="px-6 pt-6 pb-2 border-b border-sage/20">
-              <h2 className="font-serif text-xl text-soil">Wrap up {cropName}</h2>
-              <p className="text-sm font-sans text-bark mt-1">
-                Mark this crop as finished. It will move to the Completed section.
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h2 className="font-serif text-xl text-soil">Wrap up {cropName}</h2>
+                  <p className="text-sm font-sans text-bark mt-1">
+                    Mark this crop as finished. It will move to the Completed section.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="flex-shrink-0 text-bark/50 hover:text-soil transition-colors mt-1"
+                  aria-label="Close"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                    <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <form onSubmit={handleWrapUp} className="px-6 py-5 space-y-4">
