@@ -18,6 +18,11 @@ interface AttachedImage {
   preview: string    // data URL for display
 }
 
+interface SpeechRecognitionResultLike {
+  isFinal: boolean
+  [j: number]: { transcript: string }
+}
+
 interface SpeechRecognitionInstance {
   continuous: boolean
   interimResults: boolean
@@ -148,13 +153,25 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
     startInputRef.current = input // preserve any text already typed
 
     recognition.onresult = (event: Event) => {
-      const e = event as Event & { results: { length: number; [i: number]: { [j: number]: { transcript: string } } } }
-      let transcript = ''
+      const e = event as Event & { results: { length: number; [i: number]: SpeechRecognitionResultLike } }
+      // Claude chose this approach because: some Android browsers push a growing
+      // cumulative transcript as a NEW results entry on every interim update instead
+      // of replacing the previous entry in place. Summing every entry (the old code)
+      // re-adds each earlier partial guess, producing duplicated/staircased text.
+      // Finalized entries are each spoken once, so those are safe to sum; for the
+      // still-in-progress entry we only want the latest transcript, not all of them.
+      let finalTranscript = ''
+      let interimTranscript = ''
       for (let i = 0; i < e.results.length; i++) {
-        transcript += e.results[i][0].transcript
+        const result = e.results[i]
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript
+        } else {
+          interimTranscript = result[0].transcript
+        }
       }
       const prefix = startInputRef.current
-      setInput((prefix ? prefix + ' ' : '') + transcript)
+      setInput((prefix ? prefix + ' ' : '') + finalTranscript + interimTranscript)
     }
 
     recognition.onend = () => setIsListening(false)
