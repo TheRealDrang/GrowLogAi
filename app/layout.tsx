@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, DM_Sans, DM_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
+import Analytics from "@/components/Analytics";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -42,14 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* GA4 — loads on every page, tracks navigation automatically */}
-      <Script src="https://www.googletagmanager.com/gtag/js?id=G-BJQ18PWF0D" strategy="afterInteractive" />
-      <Script id="ga4-init" strategy="afterInteractive">{`
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-BJQ18PWF0D');
-      `}</Script>
+      <Analytics />
       <body className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable} font-sans antialiased bg-straw text-soil`}>
         {children}
       </body>
