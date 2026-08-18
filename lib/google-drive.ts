@@ -37,8 +37,8 @@ async function createDriveFolder(
   }
 }
 
-// Ensure the GrowLog AI / [gardenName] folder structure exists.
-// Returns the garden subfolder ID, using the cached existingFolderId when available.
+// Ensure the GrowLogAi-Photos-[gardenName] folder exists in Drive.
+// Returns the folder ID, using the cached existingFolderId when available.
 // Claude chose this approach because: drive.file scope can't search existing files,
 // so we always create and cache the first time rather than trying to search.
 export async function getOrCreateGrowLogFolder(
@@ -49,10 +49,9 @@ export async function getOrCreateGrowLogFolder(
 ): Promise<string | null> {
   if (existingFolderId) return existingFolderId
 
-  const rootId = await createDriveFolder(accessToken, 'GrowLog AI')
-  if (!rootId) return null
-
-  const gardenFolderId = await createDriveFolder(accessToken, gardenName, rootId)
+  // Format: GrowLogAi-Photos-Ridgefield_2026 (spaces → underscores)
+  const folderName = `GrowLogAi-Photos-${gardenName.replace(/\s+/g, '_')}`
+  const gardenFolderId = await createDriveFolder(accessToken, folderName)
   if (!gardenFolderId) return null
 
   // Cache the folder ID so we skip creation on subsequent uploads
