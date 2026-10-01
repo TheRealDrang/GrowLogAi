@@ -9,6 +9,7 @@ export interface CropProfile {
   variety?: string | null
   bedLocation?: string | null
   sowDate?: string | null
+  endDate?: string | null
   status: string
   notes?: string | null
 }
@@ -111,6 +112,8 @@ export function buildSystemPrompt(
 `
     : ''
 
+  const isEnded = crop.status !== 'growing'
+
   const ageInDays = crop.sowDate
     ? Math.floor((Date.now() - new Date(crop.sowDate).getTime()) / 86400000)
     : null
@@ -119,7 +122,9 @@ export function buildSystemPrompt(
     ? `${ageInDays} days since sowing`
     : 'sow date unknown'
 
-  const growthStage = inferGrowthStage(ageInDays)
+  // Claude chose this approach because: ended crops should prompt reflection, not active-care advice.
+  // inferGrowthStage is only meaningful for a living plant.
+  const growthStage = isEnded ? null : inferGrowthStage(ageInDays)
 
   const frostDates = getFrostDates(garden.usdaZone ?? null)
   const frostBlock = frostDates
@@ -149,18 +154,23 @@ Today is ${today}.
 - USDA Hardiness Zone: ${garden.usdaZone ?? 'not specified'}
 ${frostBlock}
 ${weatherBlock}
-## Current Crop
+## ${isEnded ? 'Completed Crop' : 'Current Crop'}
 - Crop: ${crop.name}${crop.variety ? ` (${crop.variety})` : ''}
 - Bed/Location: ${crop.bedLocation ?? 'not specified'}
 - Sow date: ${crop.sowDate ?? 'not specified'} (${cropAge})
-- Growth stage: ${growthStage}
-- Status: ${crop.status}
+${isEnded
+  ? `- End date: ${crop.endDate ?? 'not recorded'}\n- Status: ${crop.status} — this crop is finished`
+  : `- Growth stage: ${growthStage}\n- Status: ${crop.status}`
+}
 ${crop.notes ? `- Notes/history: ${crop.notes}` : ''}
 ${pastSessionsBlock}
 ## Your job
 - Only answer questions directly related to gardening, plants, soil, pests, diseases, weather, and harvests.
 - If the user asks about anything unrelated to gardening, politely decline in one sentence and redirect them back to their crop.
-- Give specific, actionable advice for this exact crop, at this growth stage, in this garden. Reference crop age, current weather, and frost dates when relevant.
+${isEnded
+  ? `- This crop is finished. Do NOT give active-care or growth-stage advice. Instead, help the user reflect: how did it go, what worked or didn't, what they'd do differently, or how to plan for next time. You can still discuss harvest quality, what caused any issues, or lessons for future seasons.`
+  : `- Give specific, actionable advice for this exact crop, at this growth stage, in this garden. Reference crop age, current weather, and frost dates when relevant.`
+}
 - Do not recommend specific product brands.
 
 ## Confidence and diagnostic language

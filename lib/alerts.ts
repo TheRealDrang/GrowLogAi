@@ -25,7 +25,6 @@ interface Crop {
   id: string
   name: string
   variety?: string | null
-  harvest_date?: string | null
   session_logs?: Array<{
     observation: string | null
     action_taken: string | null
@@ -304,7 +303,7 @@ export async function generateAlerts(): Promise<AlertGenerationResult> {
 
       const { data: crops } = await adminClient
         .from('crops')
-        .select('id, name, variety, harvest_date, session_logs(observation, action_taken, ai_advice, followup_days, created_at, log_date)')
+        .select('id, name, variety, session_logs(observation, action_taken, ai_advice, followup_days, created_at, log_date)')
         .eq('garden_id', garden_id)
         .eq('status', 'growing')
         .order('created_at', { referencedTable: 'session_logs', ascending: false })
@@ -363,11 +362,6 @@ export async function generateAlerts(): Promise<AlertGenerationResult> {
           }
         }
 
-        if (crop.harvest_date) {
-          const daysUntil = (new Date(crop.harvest_date).getTime() - Date.now()) / 86400000
-          if (daysUntil >= 0 && daysUntil < 7)
-            alerts.push(buildAlert('harvest_approaching', garden, crop, { priority: 1 }))
-        }
       }
 
       // === Category C: Weekly AI insight (Mondays only) ===
@@ -379,6 +373,23 @@ export async function generateAlerts(): Promise<AlertGenerationResult> {
             chat_context: `The user received this weekly garden insight: "${insight}". Discuss it and help them act on it.`,
           }))
         }
+      }
+
+      // Expire any active weather alerts whose condition is no longer true this run.
+      // Without this, a rain alert from yesterday stays active alongside today's dry alert.
+      const ALL_WEATHER_TYPES = ['weather_rain', 'weather_dry', 'weather_frost', 'weather_mildew', 'weather_wind']
+      const generatedWeatherTypes = new Set(
+        alerts.filter(a => a.alert_type.startsWith('weather_')).map(a => a.alert_type)
+      )
+      const staleWeatherTypes = ALL_WEATHER_TYPES.filter(t => !generatedWeatherTypes.has(t))
+      if (staleWeatherTypes.length > 0) {
+        await adminClient
+          .from('garden_alerts')
+          .update({ status: 'expired' })
+          .eq('user_id', user_id)
+          .eq('garden_id', garden.id)
+          .in('alert_type', staleWeatherTypes)
+          .eq('status', 'active')
       }
 
       // Upsert all generated alerts

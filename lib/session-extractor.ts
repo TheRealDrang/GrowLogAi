@@ -22,7 +22,9 @@ export function extractSessionLog(rawText: string): {
   const match = rawText.match(jsonBlockRegex)
 
   if (!match) {
-    return { cleanText: rawText.trim(), log: null }
+    // Strip any partial json block if the response was truncated before closing ```
+    const cleanText = rawText.replace(/```json[\s\S]*$/, '').trim()
+    return { cleanText, log: null }
   }
 
   const cleanText = rawText.replace(jsonBlockRegex, '').trim()

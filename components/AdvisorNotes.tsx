@@ -10,8 +10,19 @@ interface Alert {
   body: string
   action_label: string | null
   action_url: string | null
+  generated_at: string
   gardens: { name: string } | null
   crops: { name: string } | null
+}
+
+function formatAlertDate(iso: string): string {
+  const date = new Date(iso)
+  const now = new Date()
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / 86_400_000)
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7)  return `${diffDays} days ago`
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 const ALERT_ICONS: Record<string, string> = {
@@ -72,6 +83,7 @@ export default function AdvisorNotes({ initialAlerts }: { initialAlerts: Alert[]
                   {alert.gardens && (
                     <span className="text-xs text-soil/50 font-sans">{alert.gardens.name}</span>
                   )}
+                  <span className="text-xs text-soil/40 font-sans ml-auto">{formatAlertDate(alert.generated_at)}</span>
                 </div>
                 <p className="text-sm text-soil/80 font-sans mb-2 leading-relaxed">{alert.body}</p>
                 {alert.action_url && (

@@ -53,7 +53,7 @@ export async function PUT(
   if (!membership) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const body = await request.json()
-  const allowed = ['name', 'variety', 'bed_location', 'sow_date', 'harvest_date', 'status', 'notes']
+  const allowed = ['name', 'variety', 'bed_location', 'sow_date', 'end_date', 'status', 'notes']
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]
