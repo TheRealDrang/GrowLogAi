@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase'
+import { isAppsScriptUrl } from '@/lib/sheet-logger'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/onboarding/validate-sheet?url=xxx
@@ -11,17 +12,12 @@ export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url')
   if (!url) return NextResponse.json({ error: 'url is required' }, { status: 400 })
 
-  // Basic URL validation
-  try {
-    const parsed = new URL(url)
-    if (!parsed.hostname.endsWith('script.google.com')) {
-      return NextResponse.json(
-        { ok: false, error: 'URL must be a Google Apps Script web app URL.' },
-        { status: 422 }
-      )
-    }
-  } catch {
-    return NextResponse.json({ ok: false, error: 'Invalid URL.' }, { status: 422 })
+  // Basic URL validation — same rule used when saving and posting to the sheet
+  if (!isAppsScriptUrl(url)) {
+    return NextResponse.json(
+      { ok: false, error: 'URL must be a Google Apps Script web app URL.' },
+      { status: 422 }
+    )
   }
 
   try {

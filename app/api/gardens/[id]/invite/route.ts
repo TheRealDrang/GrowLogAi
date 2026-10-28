@@ -107,17 +107,28 @@ export async function POST(
   return NextResponse.json({ success: true })
 }
 
-function buildInviteEmailHtml({
-  inviterName,
-  gardenName,
-  roleLabel,
-  inviteUrl,
-}: {
+// Claude chose this approach because: garden and display names are typed by users, so they
+// must be shown as plain text — otherwise someone could inject links/buttons into an email
+// sent from our domain.
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function buildInviteEmailHtml(raw: {
   inviterName: string
   gardenName: string
   roleLabel: string
   inviteUrl: string
 }): string {
+  const inviterName = escapeHtml(raw.inviterName)
+  const gardenName = escapeHtml(raw.gardenName)
+  const roleLabel = escapeHtml(raw.roleLabel)
+  const inviteUrl = escapeHtml(raw.inviteUrl)
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>

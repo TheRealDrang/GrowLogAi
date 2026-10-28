@@ -3,7 +3,16 @@
 
 import { fetchWithTimeout } from './fetch-timeout'
 
-const HEADERS = ['Date', 'Crop', 'Variety', 'Bed', 'Observation', 'Action Taken', 'AI Advice', 'Weather', 'Full Response', 'Photo Link']
+// Make a cell value safe to write with USER_ENTERED / appendRow.
+// Claude chose this approach because: text starting with = + - @ is run as a spreadsheet
+// formula, which could let typed or AI-generated text pull data out of the sheet. A leading
+// apostrophe forces plain text (Sheets hides it) while dates and links still format normally.
+export function sheetSafe<T>(value: T): T | string {
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(value)) return `'${value}`
+  return value
+}
+
+const HEADERS = ['Date','Crop', 'Variety', 'Bed', 'Observation', 'Action Taken', 'AI Advice', 'Weather', 'Full Response', 'Photo Link']
 
 export interface SheetRowData {
   log_date: string
@@ -92,7 +101,7 @@ export async function appendToDailyLog(
     row.windspeed,
     row.conditions,
     row.mildew_risk,
-  ]
+  ].map(sheetSafe)
 
   const rangeUrl = (range: string) =>
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`
@@ -145,7 +154,7 @@ export async function appendToSheet(
     row.weather_summary,
     row.full_response,
     row.photo_url ?? '',
-  ]
+  ].map(sheetSafe)
 
   const rangeUrl = (range: string) =>
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`

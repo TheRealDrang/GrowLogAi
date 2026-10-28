@@ -10,7 +10,11 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type') as EmailOtpType | null
-  const next = searchParams.get('next') ?? '/dashboard'
+  // Claude chose this approach because: `next` is glued onto our own origin, so values like
+  // "@evil.com" or "//evil.com" could send users to another site after login. Only allow
+  // plain in-app paths that start with a single "/".
+  const rawNext = searchParams.get('next') ?? '/dashboard'
+  const next = /^\/(?![/\\])/.test(rawNext) && !/[\s@\\]/.test(rawNext) ? rawNext : '/dashboard'
 
   let exchangeError: string | null = null
 

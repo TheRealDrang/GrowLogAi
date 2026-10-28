@@ -1,5 +1,6 @@
 import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase'
 import { refreshAccessToken, createSpreadsheet } from '@/lib/google-sheets'
+import { isAppsScriptUrl } from '@/lib/sheet-logger'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/gardens — list all gardens for the current user
@@ -36,6 +37,10 @@ export async function POST(request: NextRequest) {
 
   if (!name || typeof name !== 'string' || name.trim() === '') {
     return NextResponse.json({ error: 'Garden name is required' }, { status: 400 })
+  }
+
+  if (sheet_url?.trim() && !isAppsScriptUrl(sheet_url.trim())) {
+    return NextResponse.json({ error: 'Sheet URL must be a Google Apps Script web app URL (https://script.google.com/...).' }, { status: 400 })
   }
 
   // For Google OAuth users, try to create a Google Spreadsheet automatically

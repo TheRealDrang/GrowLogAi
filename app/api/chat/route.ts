@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { crop_id, message, image, alertContext } = body
+  const { crop_id, message, image, alert_id } = body
 
   if (!crop_id || (!message && !image)) {
     return NextResponse.json({ error: 'crop_id and message or image are required' }, { status: 400 })
@@ -271,7 +271,20 @@ export async function POST(request: NextRequest) {
     sessionLogs
   )
 
-  // If the user tapped an Advisor Note, append its context to guide the first reply
+  // If the user tapped an Advisor Note, append its context to guide the first reply.
+  // Claude chose this approach because: the context text is loaded from the database (RLS limits
+  // it to the user's own alerts for this crop) instead of trusted from the browser, which
+  // previously let anyone write arbitrary text into the AI's system instructions.
+  let alertContext: string | null = null
+  if (typeof alert_id === 'string' && alert_id) {
+    const { data: alertRow } = await supabase
+      .from('garden_alerts')
+      .select('chat_context')
+      .eq('id', alert_id)
+      .eq('crop_id', crop_id)
+      .single()
+    alertContext = alertRow?.chat_context ?? null
+  }
   const systemPrompt = alertContext
     ? baseSystemPrompt + `\n\n## Alert Context\n${alertContext}`
     : baseSystemPrompt
