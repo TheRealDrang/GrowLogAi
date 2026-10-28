@@ -273,15 +273,15 @@ export async function POST(request: NextRequest) {
 
   // If the user tapped an Advisor Note, append its context to guide the first reply.
   // Claude chose this approach because: the context text is loaded from the database (RLS limits
-  // it to the user's own alerts for this crop) instead of trusted from the browser, which
-  // previously let anyone write arbitrary text into the AI's system instructions.
+  // it to the user's own alerts, whose chat_context users cannot edit) instead of trusted from the
+  // browser, which previously let anyone write arbitrary text into the AI's system instructions.
+  // No crop_id filter: many alerts are garden-wide (crop_id is null) but opened from a crop chat.
   let alertContext: string | null = null
   if (typeof alert_id === 'string' && alert_id) {
     const { data: alertRow } = await supabase
       .from('garden_alerts')
       .select('chat_context')
       .eq('id', alert_id)
-      .eq('crop_id', crop_id)
       .single()
     alertContext = alertRow?.chat_context ?? null
   }
