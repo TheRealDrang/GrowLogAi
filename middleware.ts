@@ -50,6 +50,8 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Match all routes except static files and Next.js internals
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Claude chose this approach because: /monitoring is Sentry's error-report relay (tunnelRoute in
+    // next.config.mjs); the login redirect was discarding reports from logged-out visitors.
+    '/((?!_next/static|_next/image|favicon.ico|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

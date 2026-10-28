@@ -10,4 +10,10 @@ export async function register() {
   }
 }
 
-export const onRequestError = Sentry.captureRequestError;
+// Claude chose this approach because: on Vercel the function is paused as soon as the response
+// is sent, before Sentry's background send runs (Vercel logs showed "No outgoing requests").
+// Waiting up to 2s for the send only affects requests that already failed.
+export const onRequestError: typeof Sentry.captureRequestError = async (...args) => {
+  Sentry.captureRequestError(...args);
+  await Sentry.flush(2000);
+};
