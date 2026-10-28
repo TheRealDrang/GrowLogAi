@@ -1,4 +1,5 @@
 import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabase'
+import { isAppsScriptUrl } from '@/lib/sheet-logger'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/gardens/[id]
@@ -49,6 +50,13 @@ export async function PUT(
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]
+  }
+
+  if (typeof updates.sheet_url === 'string' && updates.sheet_url.trim() !== '' && !isAppsScriptUrl(updates.sheet_url.trim())) {
+    return NextResponse.json({ error: 'Sheet URL must be a Google Apps Script web app URL (https://script.google.com/...).' }, { status: 400 })
+  }
+  if (updates.sheet_url !== undefined && updates.sheet_url !== null && typeof updates.sheet_url !== 'string') {
+    return NextResponse.json({ error: 'Invalid sheet URL.' }, { status: 400 })
   }
 
   const { data, error } = await createSupabaseAdminClient()

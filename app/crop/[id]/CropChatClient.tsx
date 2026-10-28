@@ -51,7 +51,7 @@ interface Props {
   cropName: string
   sowDate?: string | null
   currentUserDisplayName?: string
-  alertContext?: string | null
+  alertId?: string | null
 }
 
 function stripJsonBlock(text: string): string {
@@ -97,7 +97,7 @@ function getStarters(cropName: string, sowDate: string | null | undefined): stri
   ]
 }
 
-export default function CropChatClient({ cropId, initialHistory, sessionLogs, cropName, sowDate, currentUserDisplayName, alertContext }: Props) {
+export default function CropChatClient({ cropId, initialHistory, sessionLogs, cropName, sowDate, currentUserDisplayName, alertId }: Props) {
   const [messages, setMessages] = useState<Message[]>(
     initialHistory.map(m =>
       m.role === 'assistant' ? { ...m, content: stripJsonBlock(m.content) } : m
@@ -114,8 +114,10 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null)
   const [loggingToDiary, setLoggingToDiary] = useState(false)
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null)
-  // alertContext is sent on the first message only, then cleared
-  const pendingAlertContext = useRef<string | null>(alertContext ?? null)
+  // alertId is sent on the first message only, then cleared
+  // Claude chose this approach because: sending only the alert's ID (not its text) means the
+  // server looks up the real Advisor Note itself, so nobody can inject their own AI instructions.
+  const pendingAlertId = useRef<string | null>(alertId ?? null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -261,9 +263,9 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
     setStreamBuffer('')
 
     try {
-      // Send alertContext on the first message only, then clear it
-      const contextToSend = pendingAlertContext.current
-      pendingAlertContext.current = null
+      // Send alertId on the first message only, then clear it
+      const alertIdToSend = pendingAlertId.current
+      pendingAlertId.current = null
 
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -272,7 +274,7 @@ export default function CropChatClient({ cropId, initialHistory, sessionLogs, cr
           crop_id: cropId,
           message: msg,
           image: imageToSend ? { data: imageToSend.data, mediaType: imageToSend.mediaType } : undefined,
-          alertContext: contextToSend ?? undefined,
+          alert_id: alertIdToSend ?? undefined,
         }),
       })
 

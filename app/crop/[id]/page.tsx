@@ -139,7 +139,7 @@ export default async function CropPage({
         cropName={crop.name}
         sowDate={crop.sow_date}
         currentUserDisplayName={currentUserDisplayName}
-        alertContext={alertContext}
+        alertId={alertContext ? alertId : null}
       />
 
       {/* No BottomNav on chat page — input bar owns the bottom */}
