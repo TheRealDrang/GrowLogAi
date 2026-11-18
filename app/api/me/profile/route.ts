@@ -7,13 +7,18 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .select('display_name, avatar_url')
     .eq('id', user.id)
     .single()
 
-  return NextResponse.json(data ?? { display_name: null, avatar_url: null })
+  // Codex chose this approach because: a hidden database error looks like an empty saved name.
+  if (error || !data) {
+    console.error('[profile] Load failed:', error)
+    return NextResponse.json({ error: "Couldn't load your display name. Please try again." }, { status: 500 })
+  }
+  return NextResponse.json(data)
 }
 
 // POST /api/me/profile — update display name
@@ -22,17 +27,23 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { display_name } = await request.json()
+  const body = await request.json().catch(() => null)
+  const display_name = body?.display_name
   if (!display_name || typeof display_name !== 'string' || display_name.trim() === '') {
     return NextResponse.json({ error: 'display_name is required' }, { status: 400 })
   }
 
   const { data, error } = await supabase
     .from('profiles')
-    .upsert({ id: user.id, display_name: display_name.trim() })
+    // Codex chose this approach because: signup creates profiles; users may update only their own existing row.
+    .update({ display_name: display_name.trim() })
+    .eq('id', user.id)
     .select('display_name, avatar_url')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error || !data) {
+    console.error('[profile] Save failed:', error)
+    return NextResponse.json({ error: "Couldn't save your display name. Please try again." }, { status: 500 })
+  }
   return NextResponse.json(data)
 }
