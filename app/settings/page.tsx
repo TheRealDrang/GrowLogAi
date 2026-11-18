@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
@@ -50,6 +50,32 @@ export default function SettingsPage() {
   const [displayNameInput, setDisplayNameInput] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileSaved, setProfileSaved] = useState(false)
+  const [loadingProfile, setLoadingProfile] = useState(true)
+  const [profileLoaded, setProfileLoaded] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
+
+  // Codex chose this approach because: a failed load must be visible and retryable before editing a name.
+  const loadProfile = useCallback(async () => {
+    setLoadingProfile(true)
+    setProfileError(null)
+    try {
+      const res = await fetch('/api/me/profile')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Couldn't load your display name. Please try again.")
+      if (data.display_name !== null && typeof data.display_name !== 'string') {
+        throw new Error("Couldn't load your display name. Please try again.")
+      }
+      const name = data.display_name ?? ''
+      setDisplayName(name)
+      setDisplayNameInput(name)
+      setProfileLoaded(true)
+    } catch (err) {
+      setProfileError(err instanceof Error && err.message.startsWith("Couldn't load")
+        ? err.message : "Couldn't load your display name. Check your connection and try again.")
+    } finally {
+      setLoadingProfile(false)
+    }
+  }, [])
 
   useEffect(() => {
     fetch('/api/gardens')
@@ -64,14 +90,8 @@ export default function SettingsPage() {
       .then(r => r.json())
       .then(data => setIsGoogleUser(data.hasToken === true))
 
-    fetch('/api/me/profile')
-      .then(r => r.json())
-      .then(data => {
-        const name = data.display_name ?? ''
-        setDisplayName(name)
-        setDisplayNameInput(name)
-      })
-  }, [])
+    void loadProfile()
+  }, [loadProfile])
 
   function selectGarden(g: Garden) {
     setSelected(g)
@@ -147,17 +167,25 @@ export default function SettingsPage() {
   async function handleSaveProfile() {
     setSavingProfile(true)
     setProfileSaved(false)
-    const res = await fetch('/api/me/profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ display_name: displayNameInput }),
-    })
-    const data = await res.json()
-    setSavingProfile(false)
-    if (res.ok) {
+    setProfileError(null)
+    try {
+      const res = await fetch('/api/me/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ display_name: displayNameInput }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Couldn't save your display name. Please try again.")
+      if (typeof data.display_name !== 'string') throw new Error("Couldn't save your display name. Please try again.")
       setDisplayName(data.display_name)
+      setDisplayNameInput(data.display_name)
       setProfileSaved(true)
       setTimeout(() => setProfileSaved(false), 3000)
+    } catch (err) {
+      setProfileError(err instanceof Error && (err.message.startsWith("Couldn't save") || err.message === 'display_name is required')
+        ? err.message : "Couldn't save your display name. Check your connection and try again.")
+    } finally {
+      setSavingProfile(false)
     }
   }
 
@@ -536,17 +564,23 @@ export default function SettingsPage() {
               <input
                 value={displayNameInput}
                 onChange={e => setDisplayNameInput(e.target.value)}
+                disabled={loadingProfile || !profileLoaded || savingProfile}
                 className="input flex-1"
                 placeholder="Your name"
               />
               <button
                 onClick={handleSaveProfile}
-                disabled={savingProfile || displayNameInput.trim() === displayName}
+                disabled={loadingProfile || !profileLoaded || savingProfile || !displayNameInput.trim() || displayNameInput.trim() === displayName}
                 className="btn-primary disabled:opacity-50"
               >
                 {savingProfile ? 'Saving…' : 'Save'}
               </button>
             </div>
+            {loadingProfile && <p role="status" className="text-xs text-bark font-sans mt-1.5">Loading display name…</p>}
+            {profileError && <p role="alert" className="text-xs text-harvest font-sans mt-1.5">{profileError}</p>}
+            {!loadingProfile && !profileLoaded && (
+              <button onClick={loadProfile} className="text-sm text-moss underline mt-1.5">Retry loading name</button>
+            )}
             {profileSaved && (
               <p className="text-xs text-moss font-sans mt-1.5">✓ Display name updated</p>
             )}
